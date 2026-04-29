@@ -1,0 +1,285 @@
+/* Palace Mare Design System — Core Tokens
+   Palace brand within the multi-brand Mare Design System (Palace Resorts)
+   Context: Default (page UI). For brand/media contexts swap [data-theme].
+*/
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('fonts/DMSans-Regular.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root, [data-theme="palace"] {
+  /* ───────── Brand primitive palette ───────── */
+  --color-ocean-blue-50:  #f2f7fd;
+  --color-ocean-blue-100: #e4edfa;
+  --color-ocean-blue-200: #c4daf3;
+  --color-ocean-blue-300: #90bce9;
+  --color-ocean-blue-400: #559adb;
+  --color-ocean-blue-500: #2f7dc8;
+  --color-ocean-blue-600: #1f62aa;
+  --color-ocean-blue-700: #1b4e89;
+  --color-ocean-blue-800: #1a4372;
+  --color-ocean-blue-900: #183456; /* Palace signature navy */
+  --color-ocean-blue-950: #102137;
+
+  --color-bronze-600:  #9b6f41;   /* highlight / warm accent */
+  --color-copper-400:  #c69449;
+  --color-marble-100:  #f0ede9;
+
+  --color-grey-50:  #fafafa;
+  --color-grey-100: #f5f5f5;
+  --color-grey-200: #e5e5e5;
+  --color-grey-300: #d4d4d4;
+  --color-grey-400: #a3a3a3;
+  --color-grey-500: #737373;
+  --color-grey-600: #525252;
+  --color-grey-700: #404040;
+  --color-grey-800: #242424;
+  --color-grey-900: #171717;
+  --color-grey-950: #0a0a0a;
+
+  --color-red-300:  #fca5a5;
+  --color-red-700:  #b91c1c;
+  --color-red-800:  #991b1b;
+  --color-red-900:  #7f1d1d;
+  --color-green-200:#c1f1d2;
+  --color-green-300:#90e4af;
+  --color-green-600:#25934d;
+  --color-green-700:#21733f;
+  --color-yellow-200:#fae28d;
+  --color-yellow-600:#d4730b;
+  --color-yellow-700:#b0510d;
+
+  --color-black-a4:  rgba(0,0,0,0.04);
+  --color-black-a8:  rgba(0,0,0,0.08);
+  --color-black-a12: rgba(0,0,0,0.12);
+  --color-black-a20: rgba(0,0,0,0.20);
+  --color-black-a32: rgba(0,0,0,0.32);
+  --color-black-a40: rgba(0,0,0,0.40);
+  --color-white-a8:  rgba(255,255,255,0.08);
+  --color-white-a12: rgba(255,255,255,0.12);
+  --color-white-a20: rgba(255,255,255,0.20);
+  --color-white-a32: rgba(255,255,255,0.32);
+  --color-white-a40: rgba(255,255,255,0.40);
+  --color-white-a60: rgba(255,255,255,0.60);
+  --color-white-a88: rgba(255,255,255,0.88);
+
+  /* ───────── Semantic tokens — DEFAULT context ───────── */
+  --bg-default:      #ffffff;
+  --bg-raised:       #ffffff;
+  --bg-alternative:  var(--color-grey-100);
+  --bg-hover:        var(--color-black-a4);
+  --bg-active:       var(--color-black-a8);
+  --bg-inverse:      var(--color-grey-950);
+  --bg-disabled:     var(--color-black-a12);
+  --bg-overlay:      var(--color-black-a40);
+  --bg-neutral:      var(--color-black-a32);
+  --bg-neutral-weak: rgba(0,0,0,0.06);
+
+  --bg-accent:       var(--color-ocean-blue-900);
+  --bg-accent-hover: var(--color-ocean-blue-950);
+  --bg-accent-active:var(--color-ocean-blue-950);
+  --bg-accent-weak:  rgba(85,154,219,0.12);
+  --bg-highlight:    var(--color-bronze-600);
+
+  --bg-positive:     var(--color-green-700);
+  --bg-positive-weak:rgba(91,205,133,0.12);
+  --bg-warning:      var(--color-yellow-700);
+  --bg-warning-weak: rgba(247,191,59,0.12);
+  --bg-danger:       var(--color-red-700);
+  --bg-danger-hover: var(--color-red-800);
+  --bg-danger-active:var(--color-red-900);
+  --bg-danger-weak:  rgba(248,113,113,0.12);
+
+  --fg-default:     var(--color-ocean-blue-950);
+  --fg-weak:        var(--color-grey-500);
+  --fg-accent:      var(--color-ocean-blue-900);
+  --fg-highlight:   var(--color-bronze-600);
+  --fg-on-accent:   #ffffff;
+  --fg-on-inverse:  #ffffff;
+  --fg-on-positive: #ffffff;
+  --fg-on-warning:  #ffffff;
+  --fg-on-danger:   #ffffff;
+  --fg-positive:    var(--color-green-700);
+  --fg-warning:     var(--color-yellow-700);
+  --fg-danger:      var(--color-red-700);
+  --fg-disabled:    var(--color-black-a32);
+
+  --border-default:   var(--color-black-a12);
+  --border-strong:    var(--color-black-a20);
+  --border-accent:    var(--color-ocean-blue-900);
+  --border-highlight: var(--color-bronze-600);
+  --border-positive:  var(--color-green-600);
+  --border-warning:   var(--color-yellow-600);
+  --border-danger:    var(--color-red-700);
+  --border-disabled:  var(--color-black-a12);
+
+  /* ───────── Radius ───────── */
+  --radius-none: 0;
+  --radius-xs:  2px;
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+  --radius-xl:  12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+  --radius-full: 9999px;
+
+  /* Component radii (per Palace) */
+  --component-button-radius:        var(--radius-full); /* pill */
+  --component-button-editorial-radius: var(--radius-lg);
+  --component-input-radius:         var(--radius-lg);
+  --component-search-input-radius:  var(--radius-full);
+  --component-tag-radius:           var(--radius-full);
+  --component-chip-radius:          var(--radius-full);
+  --component-container-l-radius:   var(--radius-3xl);
+  --component-container-m-radius:   var(--radius-2xl);
+  --component-container-s-radius:   var(--radius-xl);
+  --component-dialog-radius:        var(--radius-2xl);
+  --component-sheet-radius:         var(--radius-3xl);
+  --component-menu-item-radius:     var(--radius-lg);
+  --component-icon-button-radius:   var(--radius-full);
+  --component-fab-radius:           var(--radius-full);
+
+  /* ───────── Border widths ───────── */
+  --border-width-0: 0;
+  --border-width-1: 1px;
+  --border-width-2: 2px;
+  --border-width-4: 4px;
+
+  /* ───────── Spacing (4px base) ───────── */
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ───────── Shadows (used sparingly) ───────── */
+  --shadow-raised: 0 4px 16px 0 rgba(0,0,0,0.16);
+  --shadow-pressed: 0 2px 8px 0 rgba(0,0,0,0.16);
+  --shadow-overlay: 0 8px 32px 0 rgba(0,0,0,0.12);
+
+  /* ───────── Type ───────── */
+  --font-base:  'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-brand: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Display — desktop variants (Palace uses 400 weight, tight tracking) */
+  --font-display-l-size: 72px; --font-display-l-lh: 80px; --font-display-l-ls: -1.44px; --font-display-l-weight: 400;
+  --font-display-m-size: 48px; --font-display-m-lh: 56px; --font-display-m-ls: -0.96px; --font-display-m-weight: 400;
+  --font-display-s-size: 40px; --font-display-s-lh: 48px; --font-display-s-ls: -0.80px; --font-display-s-weight: 400;
+  --font-display-p-size: 36px; --font-display-p-lh: 48px; --font-display-p-ls: -0.36px; --font-display-p-weight: 400;
+
+  /* Titles (500) */
+  --font-title-l-size:  32px; --font-title-l-lh:  40px; --font-title-l-ls: -0.32px; --font-title-l-weight: 500;
+  --font-title-m-size:  28px; --font-title-m-lh:  36px; --font-title-m-ls: -0.28px; --font-title-m-weight: 500;
+  --font-title-s-size:  24px; --font-title-s-lh:  32px; --font-title-s-ls: -0.24px; --font-title-s-weight: 500;
+  --font-title-xs-size: 22px; --font-title-xs-lh: 28px; --font-title-xs-ls: -0.22px; --font-title-xs-weight: 500;
+
+  /* Body (400; editorial uses 1.5x+ leading) */
+  --font-body-l-size:   18px; --font-body-l-lh:   24px; --font-body-l-weight: 400;
+  --font-body-m-size:   16px; --font-body-m-lh:   24px; --font-body-m-lh-ed: 25px; --font-body-m-weight: 400;
+  --font-body-s-size:   14px; --font-body-s-lh:   20px; --font-body-s-lh-ed: 21px; --font-body-s-weight: 400;
+  --font-body-xs-size:  12px; --font-body-xs-lh:  16px; --font-body-xs-weight: 400;
+  --font-body-xxs-size: 10px; --font-body-xxs-lh: 14px; --font-body-xxs-weight: 400;
+
+  /* Labels / UI (500) */
+  --font-label-l-size:  18px; --font-label-l-lh:  24px; --font-label-l-weight: 500;
+  --font-label-m-size:  16px; --font-label-m-lh:  24px; --font-label-m-weight: 500;
+  --font-label-s-size:  14px; --font-label-s-lh:  20px; --font-label-s-weight: 500;
+  --font-label-xs-size: 12px; --font-label-xs-lh: 16px; --font-label-xs-weight: 500;
+
+  /* Overline (400, uppercase, tracked) */
+  --font-overline-size: 12px; --font-overline-lh: 16px; --font-overline-ls: 0.72px; --font-overline-weight: 400;
+
+  /* Convenience semantic aliases */
+  --h1: var(--font-display-m-size)/var(--font-display-m-lh) var(--font-brand);
+  --h2: var(--font-title-l-size)/var(--font-title-l-lh) var(--font-brand);
+  --h3: var(--font-title-m-size)/var(--font-title-m-lh) var(--font-brand);
+  --h4: var(--font-title-s-size)/var(--font-title-s-lh) var(--font-brand);
+  --p:  var(--font-body-m-size)/var(--font-body-m-lh) var(--font-base);
+}
+
+/* Brand context — UI sits on Palace navy. Auto-invert. */
+[data-theme="palace-brand"] {
+  --bg-default:     var(--color-ocean-blue-900);
+  --bg-raised:      var(--color-ocean-blue-900);
+  --bg-alternative: var(--color-ocean-blue-900);
+  --bg-hover:       var(--color-white-a8);
+  --bg-active:      var(--color-white-a12);
+  --bg-inverse:     #ffffff;
+  --bg-accent:      #ffffff;
+  --bg-accent-hover:var(--color-white-a88);
+  --bg-accent-weak: var(--color-white-a12);
+  --bg-disabled:    var(--color-white-a12);
+  --fg-default:     #ffffff;
+  --fg-weak:        var(--color-white-a60);
+  --fg-accent:      #ffffff;
+  --fg-on-accent:   var(--color-ocean-blue-900);
+  --fg-disabled:    var(--color-white-a32);
+  --border-default: var(--color-white-a20);
+  --border-strong:  var(--color-white-a32);
+  --border-accent:  #ffffff;
+}
+
+/* Media context — UI sits over imagery/video. Tinted white. */
+[data-theme="palace-media"] {
+  --bg-default:     var(--color-grey-950);
+  --bg-raised:      var(--color-grey-950);
+  --bg-hover:       var(--color-white-a8);
+  --bg-active:      var(--color-white-a12);
+  --bg-accent:      #ffffff;
+  --bg-accent-hover:var(--color-white-a88);
+  --bg-disabled:    var(--color-white-a20);
+  --fg-default:     #ffffff;
+  --fg-weak:        var(--color-white-a60);
+  --fg-accent:      #ffffff;
+  --fg-on-accent:   var(--color-grey-950);
+  --fg-disabled:    var(--color-white-a40);
+  --border-default: var(--color-white-a20);
+  --border-strong:  var(--color-white-a40);
+  --border-accent:  #ffffff;
+}
+
+/* ───────── Base element styles ───────── */
+html, body {
+  font-family: var(--font-base);
+  font-size: var(--font-body-m-size);
+  line-height: var(--font-body-m-lh);
+  color: var(--fg-default);
+  background: var(--bg-default);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Semantic class utilities matching Mare's Tailwind tokens */
+.tpc-display-l { font-family: var(--font-brand); font-size: var(--font-display-l-size); line-height: var(--font-display-l-lh); letter-spacing: var(--font-display-l-ls); font-weight: var(--font-display-l-weight); }
+.tpc-display-m { font-family: var(--font-brand); font-size: var(--font-display-m-size); line-height: var(--font-display-m-lh); letter-spacing: var(--font-display-m-ls); font-weight: var(--font-display-m-weight); }
+.tpc-display-s { font-family: var(--font-brand); font-size: var(--font-display-s-size); line-height: var(--font-display-s-lh); letter-spacing: var(--font-display-s-ls); font-weight: var(--font-display-s-weight); }
+.tpc-display-p { font-family: var(--font-brand); font-size: var(--font-display-p-size); line-height: var(--font-display-p-lh); letter-spacing: var(--font-display-p-ls); font-weight: var(--font-display-p-weight); }
+.tpc-title-l   { font-family: var(--font-brand); font-size: var(--font-title-l-size);   line-height: var(--font-title-l-lh);   letter-spacing: var(--font-title-l-ls);   font-weight: var(--font-title-l-weight); }
+.tpc-title-m   { font-family: var(--font-brand); font-size: var(--font-title-m-size);   line-height: var(--font-title-m-lh);   letter-spacing: var(--font-title-m-ls);   font-weight: var(--font-title-m-weight); }
+.tpc-title-s   { font-family: var(--font-brand); font-size: var(--font-title-s-size);   line-height: var(--font-title-s-lh);   letter-spacing: var(--font-title-s-ls);   font-weight: var(--font-title-s-weight); }
+.tpc-title-xs  { font-family: var(--font-brand); font-size: var(--font-title-xs-size);  line-height: var(--font-title-xs-lh);  letter-spacing: var(--font-title-xs-ls);  font-weight: var(--font-title-xs-weight); }
+.tpc-body-l    { font-family: var(--font-base);  font-size: var(--font-body-l-size);    line-height: var(--font-body-l-lh);    font-weight: 400; }
+.tpc-body-m    { font-family: var(--font-base);  font-size: var(--font-body-m-size);    line-height: var(--font-body-m-lh);    font-weight: 400; }
+.tpc-body-s    { font-family: var(--font-base);  font-size: var(--font-body-s-size);    line-height: var(--font-body-s-lh);    font-weight: 400; }
+.tpc-body-xs   { font-family: var(--font-base);  font-size: var(--font-body-xs-size);   line-height: var(--font-body-xs-lh);   font-weight: 400; }
+.tpc-label-l   { font-family: var(--font-base);  font-size: var(--font-label-l-size);   line-height: var(--font-label-l-lh);   font-weight: 500; }
+.tpc-label-m   { font-family: var(--font-base);  font-size: var(--font-label-m-size);   line-height: var(--font-label-m-lh);   font-weight: 500; }
+.tpc-label-s   { font-family: var(--font-base);  font-size: var(--font-label-s-size);   line-height: var(--font-label-s-lh);   font-weight: 500; }
+.tpc-label-xs  { font-family: var(--font-base);  font-size: var(--font-label-xs-size);  line-height: var(--font-label-xs-lh);  font-weight: 500; }
+.tpc-overline  { font-family: var(--font-base);  font-size: var(--font-overline-size);  line-height: var(--font-overline-lh);  letter-spacing: var(--font-overline-ls); font-weight: 400; text-transform: uppercase; }

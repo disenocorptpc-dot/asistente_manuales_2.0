@@ -1,0 +1,12 @@
+name = "asistente-manuales"
+compatibility_date = "2024-04-29"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "manuales-db"
+database_id = "local-dev"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "manuales-assets"

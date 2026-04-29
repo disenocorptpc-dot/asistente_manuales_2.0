@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asistente de Manuales — Palace</title>
+
+  <link rel="stylesheet" href="ds/colors_and_type.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="editor.css" />
+
+  <style>
+    /* Print container — hidden by default, shown only when printing */
+    .print-container { display: none; }
+    @media print {
+      /* Fallback @page; the actual size is injected dynamically when printing */
+      @page { margin: 0; }
+      html, body {
+        background: white !important;
+        overflow: visible !important;
+        height: auto !important;
+        width: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .app > *:not(.print-container) { display: none !important; }
+      .toast, .tweaks-panel { display: none !important; }
+      .print-container {
+        display: block !important;
+        position: static !important;
+        background: white;
+        margin: 0;
+        padding: 0;
+      }
+      .print-page {
+        position: relative !important;
+        page-break-after: always;
+        break-after: page;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        overflow: hidden;
+        background: white;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .print-page:last-child { page-break-after: auto; break-after: auto; }
+      .print-page .page {
+        position: absolute !important;
+        top: 0 !important; left: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        transform: none !important;
+      }
+      .editable { box-shadow: none !important; background: transparent !important; outline: none !important; }
+      /* Prevent any bleed-related cropping */
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  </style>
+</head>
+<body data-theme="palace">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="templates.jsx"></script>
+  <script type="text/babel" src="slide-bodies.jsx"></script>
+  <script type="text/babel" src="panels.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

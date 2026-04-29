@@ -1,0 +1,12 @@
+{
+  "name": "asistente-manuales",
+  "version": "1.0.0",
+  "scripts": {
+    "db:init": "wrangler d1 execute manuales-db --local --file=./schema.sql",
+    "dev": "wrangler pages dev .",
+    "deploy": "wrangler pages deploy ."
+  },
+  "devDependencies": {
+    "wrangler": "^3.50.0"
+  }
+}

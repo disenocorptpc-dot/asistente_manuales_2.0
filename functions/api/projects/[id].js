@@ -23,3 +23,14 @@ export async function onRequestPut(context) {
     return new Response(e.message, { status: 500 });
   }
 }
+
+export async function onRequestDelete(context) {
+  const { env, params } = context;
+  const id = params.id;
+  try {
+    await env.DB.prepare('DELETE FROM projects WHERE id = ?').bind(id).run();
+    return Response.json({ message: 'Deleted' });
+  } catch (e) {
+    return new Response(e.message, { status: 500 });
+  }
+}

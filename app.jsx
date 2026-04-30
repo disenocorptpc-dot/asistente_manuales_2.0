@@ -207,6 +207,20 @@ function App() {
     }
   };
 
+  const deleteProject = async (id, name) => {
+    if (!window.confirm(`¿Eliminar «${name}»? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      setProjectList(prev => prev.filter(p => p.id !== id));
+      if (projectId === id) setProjectId(null);
+      showToast('Proyecto eliminado');
+    } catch (e) {
+      showToast('Error al eliminar: ' + e.message);
+      console.error(e);
+    }
+  };
+
   const exportPdf = async () => {
     if (!window.html2canvas || !window.jspdf) {
       showToast('Cargando librerías PDF…');
@@ -402,7 +416,7 @@ function App() {
       {/* PROJECTS MODAL */}
       {showProjects && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-content" style={{ background: '#fff', padding: 24, borderRadius: 8, width: 400, maxWidth: '90%' }}>
+          <div className="modal-content" style={{ background: '#fff', padding: 24, borderRadius: 8, width: 440, maxWidth: '90%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ margin: 0 }}>Proyectos guardados</h3>
               <button className="btn btn--ghost" onClick={() => setShowProjects(false)} style={{ padding: 4 }}><i className="ti ti-x"></i></button>
@@ -410,12 +424,35 @@ function App() {
             {projectList.length === 0 ? (
               <p style={{ color: '#666', fontSize: 14 }}>No hay proyectos guardados.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
                 {projectList.map(p => (
-                  <button key={p.id} className="btn" style={{ justifyContent: 'flex-start', textAlign: 'left', padding: '12px', border: '1px solid #ddd' }} onClick={() => loadProject(p.id)}>
-                    <div style={{ fontWeight: 500 }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: '#888' }}>{new Date(p.updated_at).toLocaleString()}</div>
-                  </button>
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      className="btn"
+                      style={{ flex: 1, justifyContent: 'flex-start', textAlign: 'left', padding: '10px 12px', border: '1px solid #ddd', background: projectId === p.id ? '#f0f7ff' : '#fff' }}
+                      onClick={() => loadProject(p.id)}
+                    >
+                      <div style={{ fontWeight: 500 }}>
+                        {projectId === p.id && <span style={{ color: 'var(--color-ocean-blue-500)', marginRight: 6, fontSize: 10 }}>●</span>}
+                        {p.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#888' }}>{new Date(p.updated_at).toLocaleString('es-MX')}</div>
+                    </button>
+                    <button
+                      onClick={() => deleteProject(p.id, p.name)}
+                      title="Eliminar proyecto"
+                      style={{
+                        width: 32, height: 32, borderRadius: 6, flexShrink: 0,
+                        background: 'transparent', color: '#aaa',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 16, transition: 'background 150ms, color 150ms',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#aaa'; }}
+                    >
+                      <i className="ti ti-trash"></i>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

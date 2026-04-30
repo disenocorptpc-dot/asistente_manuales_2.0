@@ -32,17 +32,59 @@ function InlineText({ value, onChange, className, style, multiline, placeholder 
 function Slot({ value, onChange, label, style, contain = true }) {
   const inputRef = useRefS(null);
   const [over, setOver] = useStateS(false);
+  const [isAdjusting, setIsAdjusting] = useStateS(false);
+
+  const imgUrl = typeof value === 'object' && value !== null ? value.url : value;
+  const scale = typeof value === 'object' && value !== null ? (value.scale || 1) : 1;
+  const x = typeof value === 'object' && value !== null ? (value.x || 50) : 50;
+  const y = typeof value === 'object' && value !== null ? (value.y || 50) : 50;
+
   const handleFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = (e) => onChange(e.target.result);
+    reader.onload = (e) => onChange({ url: e.target.result, scale: 1, x: 50, y: 50 });
     reader.readAsDataURL(file);
   };
+
+  const handleUpdate = (patch) => {
+    onChange({ url: imgUrl, scale, x, y, ...patch });
+  };
+
+  const imgRef = useRefS(null);
+  const startDrag = (e) => {
+    if (!isAdjusting) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initialX = x;
+    const initialY = y;
+    
+    const move = (ev) => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      const rect = imgRef.current?.parentElement.getBoundingClientRect();
+      if (!rect) return;
+      // Convert drag distance to percentage of image bounds
+      const pctX = initialX - (dx / rect.width) * 100 / scale;
+      const pctY = initialY - (dy / rect.height) * 100 / scale;
+      handleUpdate({ x: Math.max(0, Math.min(100, pctX)), y: Math.max(0, Math.min(100, pctY)) });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
   return (
     <div
-      className={'slot ' + (value ? 'has-image ' : '') + (over ? 'is-over' : '')}
-      style={style}
-      onClick={() => inputRef.current?.click()}
+      className={'slot ' + (imgUrl ? 'has-image ' : '') + (over ? 'is-over' : '') + (isAdjusting ? ' is-adjusting' : '')}
+      style={{ ...style, position: 'relative', overflow: 'hidden' }}
+      onClick={() => {
+        if (!imgUrl) inputRef.current?.click();
+      }}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
@@ -58,14 +100,54 @@ function Slot({ value, onChange, label, style, contain = true }) {
         style={{ display: 'none' }}
         onChange={(e) => handleFile(e.target.files[0])}
       />
-      {value ? (
+      {imgUrl ? (
         <>
-          <img src={value} alt="" style={{ objectFit: contain ? 'contain' : 'cover' }} />
-          <button
-            className="slot__remove"
-            onClick={(e) => { e.stopPropagation(); onChange(null); }}
-            title="Quitar imagen"
-          >×</button>
+          <img 
+            ref={imgRef}
+            src={imgUrl} 
+            alt="" 
+            onMouseDown={startDrag}
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: contain ? 'contain' : 'cover',
+              objectPosition: `${x}% ${y}%`,
+              transform: `scale(${scale})`,
+              cursor: isAdjusting ? 'grab' : 'default',
+              transition: isAdjusting ? 'none' : 'transform 0.2s',
+              pointerEvents: isAdjusting ? 'auto' : 'none'
+            }} 
+          />
+          {!isAdjusting && (
+             <div className="slot__actions">
+               <button
+                 className="slot__action-btn"
+                 onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }}
+                 title="Ajustar imagen"
+               ><i className="ti ti-crop"></i></button>
+               <button
+                 className="slot__action-btn"
+                 onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+                 title="Reemplazar imagen"
+               ><i className="ti ti-replace"></i></button>
+               <button
+                 className="slot__action-btn slot__action-btn--danger"
+                 onClick={(e) => { e.stopPropagation(); onChange(null); }}
+                 title="Quitar imagen"
+               ><i className="ti ti-x"></i></button>
+             </div>
+          )}
+          {isAdjusting && (
+            <div className="slot__adjust-panel" onClick={e => e.stopPropagation()}>
+              <div className="adjust-row">
+                <i className="ti ti-zoom-out" style={{ fontSize: 14 }}></i>
+                <input type="range" min="0.5" max="3" step="0.05" value={scale} onChange={e => handleUpdate({ scale: parseFloat(e.target.value) })} />
+                <i className="ti ti-zoom-in" style={{ fontSize: 14 }}></i>
+              </div>
+              <div className="adjust-hint">Arrastra para mover</div>
+              <button className="adjust-done" onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }}>Aceptar</button>
+            </div>
+          )}
         </>
       ) : (
         <div className="slot__placeholder">

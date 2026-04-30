@@ -207,22 +207,56 @@ function App() {
     }
   };
 
-  const exportPdf = () => {
-    showToast('Preparando PDF…');
-    setTimeout(() => {
-      // Inject a print stylesheet with the correct @page size for the current selection
-      const existing = document.getElementById('__print_pagesize');
-      if (existing) existing.remove();
-      const style = document.createElement('style');
-      style.id = '__print_pagesize';
-      style.textContent = `@media print { @page { size: ${dims.wMM}mm ${dims.hMM}mm; margin: 0; } }`;
-      document.head.appendChild(style);
-      document.body.classList.add('is-printing');
-      window.print();
-      setTimeout(() => {
-        document.body.classList.remove('is-printing');
-      }, 500);
-    }, 200);
+  const exportPdf = async () => {
+    if (!window.html2canvas || !window.jspdf) {
+      showToast('Cargando librerías PDF…');
+      return;
+    }
+    showToast('Generando PDF…');
+    const { jsPDF } = window.jspdf;
+    const orientation = dims.wMM > dims.hMM ? 'l' : 'p';
+    try {
+      const pdf = new jsPDF({
+        orientation,
+        unit: 'mm',
+        format: [dims.wMM, dims.hMM],
+        compress: true,
+      });
+      // Temporarily show print-container off-screen for capture
+      const printContainer = document.querySelector('.print-container');
+      const prev = { display: printContainer.style.display, position: printContainer.style.position,
+        top: printContainer.style.top, left: printContainer.style.left, zIndex: printContainer.style.zIndex };
+      printContainer.style.display = 'block';
+      printContainer.style.position = 'fixed';
+      printContainer.style.top = '-99999px';
+      printContainer.style.left = '0';
+      printContainer.style.zIndex = '-1';
+      // Small settle delay
+      await new Promise(r => setTimeout(r, 120));
+      const pages = printContainer.querySelectorAll('.print-page');
+      for (let i = 0; i < pages.length; i++) {
+        const pageEl = pages[i].querySelector('.page') || pages[i];
+        if (i > 0) pdf.addPage([dims.wMM, dims.hMM], orientation);
+        const canvas = await window.html2canvas(pageEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          width: dims.w,
+          height: dims.h,
+          windowWidth: dims.w,
+          windowHeight: dims.h,
+          logging: false,
+        });
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, dims.wMM, dims.hMM);
+      }
+      // Restore
+      Object.assign(printContainer.style, prev);
+      pdf.save(`${globals.title || 'manual'}.pdf`);
+      showToast('PDF descargado ✓');
+    } catch (e) {
+      showToast('Error generando PDF: ' + e.message);
+      console.error(e);
+    }
   };
 
   return (

@@ -28,47 +28,59 @@ function InlineText({ value, onChange, className, style, multiline, placeholder 
   );
 }
 
-/* Slot: clickable / drop-target image area */
+/* Slot: clickable / drop-target image area with working pan+zoom */
 function Slot({ value, onChange, label, style, contain = true }) {
   const inputRef = useRefS(null);
+  const containerRef = useRefS(null);
   const [over, setOver] = useStateS(false);
   const [isAdjusting, setIsAdjusting] = useStateS(false);
 
-  const imgUrl = typeof value === 'object' && value !== null ? value.url : value;
-  const scale = typeof value === 'object' && value !== null ? (value.scale || 1) : 1;
-  const x = typeof value === 'object' && value !== null ? (value.x || 50) : 50;
-  const y = typeof value === 'object' && value !== null ? (value.y || 50) : 50;
+  // Normalize value: supports legacy string, legacy {url,x,y}, or new {url,scale,panX,panY}
+  const imgUrl = value && typeof value === 'object' ? value.url : (value || null);
+  const scale   = value && typeof value === 'object' ? (value.scale ?? 1) : 1;
+  // panX/panY: % offset from center. 0 = centered.
+  // Migrate from old x/y (0-100, center=50) → panX/panY (center=0)
+  const panX = value && typeof value === 'object'
+    ? (value.panX !== undefined ? value.panX : (value.x !== undefined ? (value.x - 50) * 0.5 : 0))
+    : 0;
+  const panY = value && typeof value === 'object'
+    ? (value.panY !== undefined ? value.panY : (value.y !== undefined ? (value.y - 50) * 0.5 : 0))
+    : 0;
 
   const handleFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = (e) => onChange({ url: e.target.result, scale: 1, x: 50, y: 50 });
+    reader.onload = (e) => onChange({ url: e.target.result, scale: 1, panX: 0, panY: 0 });
     reader.readAsDataURL(file);
   };
 
   const handleUpdate = (patch) => {
-    onChange({ url: imgUrl, scale, x, y, ...patch });
+    onChange({ url: imgUrl, scale, panX, panY, ...patch });
   };
 
-  const imgRef = useRefS(null);
+  // Pan limit: how far we can push the image before it reveals white
+  // At scale=1 → panLimit=0 (can't pan). At scale=2 → panLimit=50, etc.
+  const panLimit = (scale - 1) * 50;
+
   const startDrag = (e) => {
     if (!isAdjusting) return;
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
     const startY = e.clientY;
-    const initialX = x;
-    const initialY = y;
-    
+    const initPanX = panX;
+    const initPanY = panY;
     const move = (ev) => {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      const rect = imgRef.current?.parentElement.getBoundingClientRect();
+      const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      // Convert drag distance to percentage of image bounds
-      const pctX = initialX - (dx / rect.width) * 100 / scale;
-      const pctY = initialY - (dy / rect.height) * 100 / scale;
-      handleUpdate({ x: Math.max(0, Math.min(100, pctX)), y: Math.max(0, Math.min(100, pctY)) });
+      // Convert pixel delta to % of container, adjusted for scale
+      const dx = ((ev.clientX - startX) / rect.width) * 100;
+      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      const lim = Math.max(0, panLimit);
+      handleUpdate({
+        panX: Math.max(-lim, Math.min(lim, initPanX + dx)),
+        panY: Math.max(-lim, Math.min(lim, initPanY + dy)),
+      });
     };
     const up = () => {
       window.removeEventListener('mousemove', move);
@@ -80,18 +92,13 @@ function Slot({ value, onChange, label, style, contain = true }) {
 
   return (
     <div
-      className={'slot ' + (imgUrl ? 'has-image ' : '') + (over ? 'is-over' : '') + (isAdjusting ? ' is-adjusting' : '')}
+      ref={containerRef}
+      className={'slot ' + (imgUrl ? 'has-image ' : '') + (over ? 'is-over ' : '') + (isAdjusting ? 'is-adjusting' : '')}
       style={{ ...style, position: 'relative', overflow: 'hidden' }}
-      onClick={() => {
-        if (!imgUrl) inputRef.current?.click();
-      }}
+      onClick={() => { if (!imgUrl) inputRef.current?.click(); }}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setOver(false);
-        handleFile(e.dataTransfer.files[0]);
-      }}
+      onDrop={(e) => { e.preventDefault(); setOver(false); handleFile(e.dataTransfer.files[0]); }}
     >
       <input
         ref={inputRef}
@@ -102,50 +109,75 @@ function Slot({ value, onChange, label, style, contain = true }) {
       />
       {imgUrl ? (
         <>
-          <img 
-            ref={imgRef}
-            src={imgUrl} 
-            alt="" 
+          <img
+            src={imgUrl}
+            alt=""
             onMouseDown={startDrag}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
+            draggable={false}
+            style={{
+              width: '100%',
+              height: '100%',
               objectFit: contain ? 'contain' : 'cover',
-              objectPosition: `${x}% ${y}%`,
-              transform: `scale(${scale})`,
+              // Single unified transform: translate first (in container space), then scale
+              transform: `translate(${panX}%, ${panY}%) scale(${scale})`,
+              transformOrigin: 'center center',
               cursor: isAdjusting ? 'grab' : 'default',
               transition: isAdjusting ? 'none' : 'transform 0.2s',
-              pointerEvents: isAdjusting ? 'auto' : 'none'
-            }} 
+              pointerEvents: isAdjusting ? 'auto' : 'none',
+              userSelect: 'none',
+              display: 'block',
+            }}
           />
           {!isAdjusting && (
-             <div className="slot__actions">
-               <button
-                 className="slot__action-btn"
-                 onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }}
-                 title="Ajustar imagen"
-               ><i className="ti ti-crop"></i></button>
-               <button
-                 className="slot__action-btn"
-                 onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
-                 title="Reemplazar imagen"
-               ><i className="ti ti-replace"></i></button>
-               <button
-                 className="slot__action-btn slot__action-btn--danger"
-                 onClick={(e) => { e.stopPropagation(); onChange(null); }}
-                 title="Quitar imagen"
-               ><i className="ti ti-x"></i></button>
-             </div>
+            <div className="slot__actions">
+              <button
+                className="slot__action-btn"
+                onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }}
+                title="Ajustar imagen"
+              ><i className="ti ti-crop"></i></button>
+              <button
+                className="slot__action-btn"
+                onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+                title="Reemplazar imagen"
+              ><i className="ti ti-replace"></i></button>
+              <button
+                className="slot__action-btn slot__action-btn--danger"
+                onClick={(e) => { e.stopPropagation(); onChange(null); }}
+                title="Quitar imagen"
+              ><i className="ti ti-x"></i></button>
+            </div>
           )}
           {isAdjusting && (
             <div className="slot__adjust-panel" onClick={e => e.stopPropagation()}>
               <div className="adjust-row">
                 <i className="ti ti-zoom-out" style={{ fontSize: 14 }}></i>
-                <input type="range" min="0.5" max="3" step="0.05" value={scale} onChange={e => handleUpdate({ scale: parseFloat(e.target.value) })} />
+                <input
+                  type="range" min="1" max="4" step="0.05"
+                  value={scale}
+                  onChange={e => {
+                    const newScale = parseFloat(e.target.value);
+                    const newLim = Math.max(0, (newScale - 1) * 50);
+                    handleUpdate({
+                      scale: newScale,
+                      panX: Math.max(-newLim, Math.min(newLim, panX)),
+                      panY: Math.max(-newLim, Math.min(newLim, panY)),
+                    });
+                  }}
+                />
                 <i className="ti ti-zoom-in" style={{ fontSize: 14 }}></i>
               </div>
-              <div className="adjust-hint">Arrastra para mover</div>
-              <button className="adjust-done" onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }}>Aceptar</button>
+              <div className="adjust-row" style={{ justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                <button
+                  className="adjust-reset"
+                  onClick={() => handleUpdate({ scale: 1, panX: 0, panY: 0 })}
+                  title="Resetear posición"
+                >⌂ Reset</button>
+                <button
+                  className="adjust-done"
+                  onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }}
+                >Aceptar</button>
+              </div>
+              <div className="adjust-hint">Arrastra para mover · Rueda para zoom</div>
             </div>
           )}
         </>

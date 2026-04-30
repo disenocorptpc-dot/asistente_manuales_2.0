@@ -494,7 +494,36 @@ function ExplosivoBody({ data, update }) {
                   zIndex: 3,
                   userSelect: 'none',
                 }}
-              >{a.num}</div>
+              >
+                {a.num}
+                {/* Remove badge — visible on hover */}
+                {isHover && (
+                  <div
+                    data-bullet
+                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      update({ annotations: data.annotations.filter(x => x.id !== a.id) });
+                      setHoverId(null);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: -8, right: -8,
+                      width: 14, height: 14,
+                      borderRadius: '50%',
+                      background: '#ef4444',
+                      color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                      zIndex: 4,
+                      lineHeight: 1,
+                    }}
+                    title="Quitar bullet"
+                  >×</div>
+                )}
+              </div>
             );
           })}
           {/* Hint when image present and unplaced bullets */}
@@ -557,6 +586,26 @@ function ExplosivoBody({ data, update }) {
                   multiline
                   style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-grey-700)', flex: 1, paddingTop: 4 }}
                 />
+                {/* Remove bullet from sidebar */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    update({ annotations: data.annotations.filter(x => x.id !== a.id) });
+                  }}
+                  style={{
+                    opacity: isHover ? 1 : 0,
+                    transition: 'opacity 120ms',
+                    width: 18, height: 18,
+                    borderRadius: '50%',
+                    background: '#ef4444',
+                    color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 700,
+                    flexShrink: 0, marginTop: 4,
+                    cursor: 'pointer',
+                  }}
+                  title="Quitar bullet"
+                >×</button>
               </div>
             );
           })}

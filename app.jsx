@@ -1,6 +1,39 @@
 /* global React, ReactDOM, SEED_SLIDES, PAGE_SIZES, SlidesPanel, Inspector, SlideRenderer, TWEAK_DEFAULTS */
 const { useState: useStateA, useEffect: useEffectA, useRef: useRefA, useCallback: useCallbackA } = React;
 
+/* Compress a base64 dataURL or {url, ...} object to a smaller JPEG for storage */
+function compressDataUrl(src) {
+  const url = (src && typeof src === 'object') ? src.url : src;
+  if (!url || !url.startsWith('data:image/')) return Promise.resolve(src);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      const ratio = Math.min(MAX / img.naturalWidth, MAX / img.naturalHeight, 1);
+      const w = Math.round(img.naturalWidth * ratio);
+      const h = Math.round(img.naturalHeight * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.6);
+      resolve(src && typeof src === 'object' ? { ...src, url: compressed } : compressed);
+    };
+    img.onerror = () => resolve(src);
+    img.src = url;
+  });
+}
+
+async function compressSlideImages(slides) {
+  return Promise.all(slides.map(async (slide) => {
+    const data = { ...slide.data };
+    const keys = Object.keys(data).filter(k => k.startsWith('asset'));
+    for (const k of keys) {
+      if (data[k]) data[k] = await compressDataUrl(data[k]);
+    }
+    return { ...slide, data };
+  }));
+}
+
 function App() {
   const [slides, setSlides] = useStateA(SEED_SLIDES);
   const [activeId, setActiveId] = useStateA(SEED_SLIDES[0].id);
@@ -114,27 +147,31 @@ function App() {
 
   // Save / Load Project
   const saveProject = async () => {
-    const payload = { version: 2, slides, globals };
+    showToast('Guardando…');
     try {
+      const compressedSlides = await compressSlideImages(slides);
+      const payload = { version: 2, slides: compressedSlides, globals };
       if (projectId) {
-        await fetch(`/api/projects/${projectId}`, {
+        const res = await fetch(`/api/projects/${projectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: globals.title || 'manual', data: payload })
         });
-        showToast('Proyecto actualizado');
+        if (!res.ok) throw new Error(await res.text());
+        showToast('Proyecto actualizado ✓');
       } else {
         const res = await fetch('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: globals.title || 'manual', data: payload })
         });
+        if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         setProjectId(data.id);
-        showToast('Proyecto guardado');
+        showToast('Proyecto guardado ✓');
       }
     } catch (e) {
-      showToast('Error al guardar proyecto');
+      showToast('Error al guardar: ' + e.message);
       console.error(e);
     }
   };

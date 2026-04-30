@@ -10,6 +10,7 @@ function App() {
     property: 'Moon Palace Cancún',
     dept: 'Departamento de Diseño Gráfico',
     corp: 'Corporativo THG',
+    date: new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }),
     logoData: null,
   });
   const [tweaks, setTweaks] = useStateA(TWEAK_DEFAULTS);
@@ -211,6 +212,10 @@ function App() {
           <div className="pm-field pm-field--prop">
             <label>Propiedad</label>
             <input value={globals.property} onChange={(e) => setGlobals({ ...globals, property: e.target.value })}/>
+          </div>
+          <div className="pm-field pm-field--date">
+            <label>Fecha</label>
+            <input value={globals.date} onChange={(e) => setGlobals({ ...globals, date: e.target.value })}/>
           </div>
         </div>
 

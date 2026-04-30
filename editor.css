@@ -101,6 +101,7 @@ input, textarea { font-family: inherit; color: inherit; }
 .topbar__projectmeta .pm-field--title input { width: 200px; }
 .topbar__projectmeta .pm-field--suffix input { width: 60px; }
 .topbar__projectmeta .pm-field--prop input { width: 140px; }
+.topbar__projectmeta .pm-field--date input { width: 110px; }
 
 .topbar__actions {
   display: flex;

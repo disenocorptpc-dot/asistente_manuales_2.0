@@ -29,6 +29,7 @@ function PageChrome({ globals, slideIndex, total, slideLabel }) {
           {globals.suffix ? ' · ' + globals.suffix : ''}
           {' — '}
           {globals.property || 'Propiedad'}
+          {globals.date ? ' — ' + globals.date : ''}
         </div>
         <div className="pn">
           {String(slideIndex + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
@@ -580,6 +581,7 @@ function ProjectInspector({ globals, setGlobals }) {
         <Field label="Título del proyecto" value={globals.title} onChange={v => setGlobals({ ...globals, title: v })} />
         <Field label="Sufijo / variante" value={globals.suffix} onChange={v => setGlobals({ ...globals, suffix: v })} placeholder="BP, BV, etc." />
         <Field label="Propiedad / hotel" value={globals.property} onChange={v => setGlobals({ ...globals, property: v })} />
+        <Field label="Fecha de elaboración" value={globals.date} onChange={v => setGlobals({ ...globals, date: v })} placeholder="Ej. 12 Abril 2026" />
         <Field label="Departamento" value={globals.dept} onChange={v => setGlobals({ ...globals, dept: v })} />
         <Field label="Corporativo" value={globals.corp} onChange={v => setGlobals({ ...globals, corp: v })} />
       </div>

@@ -9,10 +9,7 @@ const TEMPLATES = {
     desc: 'Cubierta corporativa con líneas',
     icon: 'rectangle-vertical',
     defaults: () => ({
-      sectionLabel: 'MANUAL DE PRODUCCIÓN',
       itemTitle: 'BAÑO DE HUÉSPEDES',
-      itemSubtitle: 'Almare · BP',
-      coverNote: 'Departamento de Diseño Gráfico · Corporativo THG',
     }),
   },
   montaje: {

@@ -103,7 +103,19 @@ function App() {
   const activeIndex = slides.findIndex(s => s.id === (activeSlide && activeSlide.id));
 
   const onUpdateSlide = useCallbackA((next) => {
-    setSlides(curr => curr.map(s => s.id === next.id ? next : s));
+    setSlides(curr => {
+      const old = curr.find(s => s.id === next.id);
+      if (old && old.template === 'cover' && old.data.itemTitle !== next.data.itemTitle) {
+        return curr.map(s => {
+          if (s.id === next.id) return next;
+          if ('itemTitle' in s.data) {
+            return { ...s, data: { ...s.data, itemTitle: next.data.itemTitle } };
+          }
+          return s;
+        });
+      }
+      return curr.map(s => s.id === next.id ? next : s);
+    });
   }, []);
 
   // Paste image from clipboard
@@ -151,11 +163,12 @@ function App() {
     try {
       const compressedSlides = await compressSlideImages(slides);
       const payload = { version: 2, slides: compressedSlides, globals };
+      const body = { name: globals.title || 'manual', property: globals.property || '', data: payload };
       if (projectId) {
         const res = await fetch(`/api/projects/${projectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: globals.title || 'manual', data: payload })
+          body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error(await res.text());
         showToast('Proyecto actualizado ✓');
@@ -163,7 +176,7 @@ function App() {
         const res = await fetch('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: globals.title || 'manual', data: payload })
+          body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
@@ -255,6 +268,7 @@ function App() {
           scale: 2,
           useCORS: true,
           allowTaint: true,
+          backgroundColor: '#ffffff',
           width: dims.w,
           height: dims.h,
           windowWidth: dims.w,
@@ -414,51 +428,65 @@ function App() {
       {toast && <div className="toast">{toast}</div>}
 
       {/* PROJECTS MODAL */}
-      {showProjects && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-content" style={{ background: '#fff', padding: 24, borderRadius: 8, width: 440, maxWidth: '90%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0 }}>Proyectos guardados</h3>
-              <button className="btn btn--ghost" onClick={() => setShowProjects(false)} style={{ padding: 4 }}><i className="ti ti-x"></i></button>
-            </div>
-            {projectList.length === 0 ? (
-              <p style={{ color: '#666', fontSize: 14 }}>No hay proyectos guardados.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
-                {projectList.map(p => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button
-                      className="btn"
-                      style={{ flex: 1, justifyContent: 'flex-start', textAlign: 'left', padding: '10px 12px', border: '1px solid #ddd', background: projectId === p.id ? '#f0f7ff' : '#fff' }}
-                      onClick={() => loadProject(p.id)}
-                    >
-                      <div style={{ fontWeight: 500 }}>
-                        {projectId === p.id && <span style={{ color: 'var(--color-ocean-blue-500)', marginRight: 6, fontSize: 10 }}>●</span>}
-                        {p.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#888' }}>{new Date(p.updated_at).toLocaleString('es-MX')}</div>
-                    </button>
-                    <button
-                      onClick={() => deleteProject(p.id, p.name)}
-                      title="Eliminar proyecto"
-                      style={{
-                        width: 32, height: 32, borderRadius: 6, flexShrink: 0,
-                        background: 'transparent', color: '#aaa',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 16, transition: 'background 150ms, color 150ms',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#aaa'; }}
-                    >
-                      <i className="ti ti-trash"></i>
-                    </button>
-                  </div>
-                ))}
+      {showProjects && (() => {
+        // Group projects by property
+        const groups = {};
+        projectList.forEach(p => {
+          const grp = p.property || 'Sin propiedad';
+          if (!groups[grp]) groups[grp] = [];
+          groups[grp].push(p);
+        });
+        const groupEntries = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+        return (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="modal-content" style={{ background: '#fff', padding: 24, borderRadius: 8, width: 460, maxWidth: '90%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ margin: 0 }}>Proyectos guardados</h3>
+                <button className="btn btn--ghost" onClick={() => setShowProjects(false)} style={{ padding: 4 }}><i className="ti ti-x"></i></button>
               </div>
-            )}
+              {projectList.length === 0 ? (
+                <p style={{ color: '#666', fontSize: 14 }}>No hay proyectos guardados.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: 420, overflowY: 'auto' }}>
+                  {groupEntries.map(([grp, projects]) => (
+                    <div key={grp}>
+                      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: '#888', marginBottom: 6, paddingBottom: 4, borderBottom: '1px solid #eee' }}>
+                        <i className="ti ti-building" style={{ marginRight: 4 }}></i>{grp}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {projects.map(p => (
+                          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              className="btn"
+                              style={{ flex: 1, justifyContent: 'flex-start', textAlign: 'left', padding: '10px 12px', border: '1px solid #ddd', background: projectId === p.id ? '#f0f7ff' : '#fff' }}
+                              onClick={() => loadProject(p.id)}
+                            >
+                              <div style={{ fontWeight: 500 }}>
+                                {projectId === p.id && <span style={{ color: 'var(--color-ocean-blue-500)', marginRight: 6, fontSize: 10 }}>●</span>}
+                                {p.name}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#888' }}>{new Date(p.updated_at).toLocaleString('es-MX')}</div>
+                            </button>
+                            <button
+                              onClick={() => deleteProject(p.id, p.name)}
+                              title="Eliminar proyecto"
+                              style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0, background: 'transparent', color: '#aaa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'background 150ms, color 150ms' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#aaa'; }}
+                            >
+                              <i className="ti ti-trash"></i>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* PRINT CONTAINER — only visible when printing */}
       <div className="print-container" aria-hidden="true">

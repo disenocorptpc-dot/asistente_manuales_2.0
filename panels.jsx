@@ -327,7 +327,6 @@ function SlideInspector({ slide, tpl, update }) {
 
       {tpl.id === 'cover' && <>
         <FieldGroup title="Contenido">
-          <Field label="Etiqueta superior" value={d.sectionLabel} onChange={v => update({ sectionLabel: v })} />
           <Field label="Título principal" value={d.itemTitle} onChange={v => update({ itemTitle: v })} />
         </FieldGroup>
         <FieldGroup title="Imagen">

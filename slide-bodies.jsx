@@ -16,6 +16,8 @@ function InlineText({ value, onChange, className, style, multiline, placeholder 
       style={style}
       contentEditable
       suppressContentEditableWarning
+      spellCheck={true}
+      lang="es"
       data-placeholder={placeholder || ''}
       onBlur={(e) => onChange(e.currentTarget.innerText)}
       onKeyDown={(e) => {
@@ -29,7 +31,7 @@ function InlineText({ value, onChange, className, style, multiline, placeholder 
 }
 
 /* Slot: clickable / drop-target image area with working pan+zoom */
-function Slot({ value, onChange, label, style, contain = true }) {
+function Slot({ value, onChange, label, style, contain = false, tightFit = false }) {
   const inputRef = useRefS(null);
   const containerRef = useRefS(null);
   const [over, setOver] = useStateS(false);
@@ -115,8 +117,10 @@ function Slot({ value, onChange, label, style, contain = true }) {
             onMouseDown={startDrag}
             draggable={false}
             style={{
-              width: '100%',
-              height: '100%',
+              width: tightFit ? 'auto' : '100%',
+              height: tightFit ? 'auto' : '100%',
+              maxWidth: '100%',
+              maxHeight: '100%',
               objectFit: contain ? 'contain' : 'cover',
               // Single unified transform: translate first (in container space), then scale
               transform: `translate(${panX}%, ${panY}%) scale(${scale})`,
@@ -234,7 +238,7 @@ function CoverBody({ data, update, globals }) {
       {/* Top logo (Palace wordmark on brand) */}
       <div style={{ position: 'absolute', top: 56, left: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
         {globals?.logoData ? (
-          <img src={globals.logoData} alt="" style={{ height: 36, filter: 'brightness(0) invert(1)' }} />
+          <img src={globals.logoData} alt="" style={{ height: 36, maxWidth: 180, objectFit: 'contain' }} />
         ) : (
           <img src="ds/logo-palace-default.svg" alt="Palace" style={{ height: 36, filter: 'brightness(0) invert(1)' }} />
         )}
@@ -257,29 +261,13 @@ function CoverBody({ data, update, globals }) {
         display: 'flex', flexDirection: 'column', gap: 20,
       }}>
         <div style={{ width: 60, height: 1, background: cyanStrong }}/>
-        <InlineText
-          value={data.sectionLabel}
-          onChange={(v) => update({ sectionLabel: v })}
-          style={{ fontSize: 11, fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: cyan }}
-        />
+        <div style={{ fontSize: 18, fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: cyan }}>
+          {globals?.property || 'Propiedad'}
+        </div>
         <InlineText
           value={data.itemTitle}
           onChange={(v) => update({ itemTitle: v })}
           style={{ fontSize: 56, fontWeight: 400, lineHeight: 1.0, letterSpacing: '-1.6px', color: 'white' }}
-        />
-        <InlineText
-          value={data.itemSubtitle}
-          onChange={(v) => update({ itemSubtitle: v })}
-          style={{ fontSize: 18, fontWeight: 400, color: 'rgba(255,255,255,0.72)', letterSpacing: '0.5px' }}
-        />
-      </div>
-
-      {/* Bottom note */}
-      <div style={{ position: 'absolute', left: 64, bottom: 56 }}>
-        <InlineText
-          value={data.coverNote}
-          onChange={(v) => update({ coverNote: v })}
-          style={{ fontSize: 10, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}
         />
       </div>
     </div>
@@ -339,48 +327,58 @@ function DescriptivoBody({ data, update }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="slide-overline" style={{ fontSize: 9 }}>Vista frontal · vector</div>
           <div style={{
-            flex: 1, position: 'relative',
+            flex: 1,
             background: '#fafafa',
             border: '1px solid var(--border-default)',
             borderRadius: 4,
-            padding: '24px 36px 44px 36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '44px',
+            overflow: 'hidden'
           }}>
-            <Slot
-              value={data.assetVector}
-              onChange={(v) => update({ assetVector: v })}
-              label="Vector flat"
-              style={{
-                position: 'absolute',
-                top: 24, left: 36, right: 36, bottom: 44,
-                background: 'transparent',
-                border: data.assetVector ? '0' : undefined,
-              }}
-            />
-            {/* Width cota */}
-            <div style={{
-              position: 'absolute', left: 36, right: 36, bottom: 16,
-              display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
-            }}>
-              <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
-              <InlineText
-                value={data.cotaAncho}
-                onChange={(v) => update({ cotaAncho: v })}
-                style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px' }}
+            <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%', maxHeight: '100%' }}>
+              <Slot
+                value={data.assetVector}
+                onChange={(v) => update({ assetVector: v })}
+                label="Vector flat"
+                style={{
+                  background: 'transparent',
+                  border: data.assetVector ? '0' : undefined,
+                  width: data.assetVector ? 'auto' : '100%',
+                  height: data.assetVector ? 'auto' : '100%',
+                  minWidth: data.assetVector ? 0 : 200,
+                  minHeight: data.assetVector ? 0 : 200,
+                }}
+                contain={true}
+                tightFit={true}
               />
-              <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
-            </div>
-            {/* Height cota */}
-            <div style={{
-              position: 'absolute', top: 24, bottom: 44, left: 12,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
-            }}>
-              <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
-              <InlineText
-                value={data.cotaAlto}
-                onChange={(v) => update({ cotaAlto: v })}
-                style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-              />
-              <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
+              {/* Width cota */}
+              <div style={{
+                position: 'absolute', left: 0, right: 0, bottom: -24,
+                display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
+              }}>
+                <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
+                <InlineText
+                  value={data.cotaAncho}
+                  onChange={(v) => update({ cotaAncho: v })}
+                  style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', whiteSpace: 'nowrap' }}
+                />
+                <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
+              </div>
+              {/* Height cota */}
+              <div style={{
+                position: 'absolute', top: 0, bottom: 0, left: -28,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
+              }}>
+                <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
+                <InlineText
+                  value={data.cotaAlto}
+                  onChange={(v) => update({ cotaAlto: v })}
+                  style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', writingMode: 'vertical-rl', transform: 'rotate(180deg)', whiteSpace: 'nowrap' }}
+                />
+                <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
+              </div>
             </div>
           </div>
         </div>

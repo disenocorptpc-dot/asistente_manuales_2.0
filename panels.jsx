@@ -29,10 +29,9 @@ function PageChrome({ globals, slideIndex, total, slideLabel }) {
           {globals.suffix ? ' · ' + globals.suffix : ''}
           {' — '}
           {globals.property || 'Propiedad'}
-          {globals.date ? ' — ' + globals.date : ''}
         </div>
         <div className="pn">
-          {String(slideIndex + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+          {globals.date || ''}
         </div>
       </div>
     </>

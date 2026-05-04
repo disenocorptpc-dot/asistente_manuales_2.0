@@ -160,9 +160,13 @@ function App() {
   // Save / Load Project
   const saveProject = async () => {
     showToast('Guardando…');
+    const currentDate = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    const updatedGlobals = { ...globals, date: currentDate };
+    setGlobals(updatedGlobals);
+
     try {
       const compressedSlides = await compressSlideImages(slides);
-      const payload = { version: 2, slides: compressedSlides, globals };
+      const payload = { version: 2, slides: compressedSlides, globals: updatedGlobals };
       const body = { name: globals.title || 'manual', property: globals.property || '', data: payload };
       if (projectId) {
         const res = await fetch(`/api/projects/${projectId}`, {

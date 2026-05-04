@@ -213,6 +213,13 @@ function CoverBody({ data, update, globals }) {
         )}
       </div>
 
+      {/* Bottom left Date */}
+      <div style={{ position: 'absolute', bottom: 56, left: 64 }}>
+        <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: 13, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+          {globals?.date}
+        </span>
+      </div>
+
       {/* Center-left content */}
       <div style={{
         position: 'absolute', left: 64, top: '50%',

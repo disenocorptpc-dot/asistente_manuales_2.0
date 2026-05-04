@@ -88,6 +88,9 @@ function SlideThumb({ slide, globals, index, total, pageSize }) {
         <div
           className="slide-card__thumb-stage"
           style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
             width: dims.w,
             height: dims.h,
             transform: `scale(${scale})`,

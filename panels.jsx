@@ -203,6 +203,13 @@ function SlidesPanel({ slides, globals, activeId, setActiveId, setSlides, pageSi
                   style={{ opacity: slides.length <= 1 ? 0.3 : 1 }}
                 ><i className="ti ti-trash"></i></button>
               </div>
+              <SlideThumb
+                slide={s}
+                globals={globals}
+                index={i}
+                total={slides.length}
+                pageSize={pageSize}
+              />
             </div>
           );
         })}

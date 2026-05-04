@@ -84,25 +84,26 @@ function SlideThumb({ slide, globals, index, total, pageSize }) {
   }, [dims.w]);
   return (
     <div className="slide-card__thumb" ref={ref}>
-      <div
-        className="slide-card__thumb-stage"
-        style={{
-          width: dims.w,
-          height: dims.h,
-          transform: `scale(${scale})`,
-        }}
-      >
-        <SlideRenderer
-          slide={slide}
-          globals={globals}
-          index={index}
-          total={total}
-          onUpdate={() => {}}
-          pageSize={pageSize}
-          scale={1}
-        />
-        {/* Click-blocker to prevent inline editing in thumb */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none' }}/>
+      <div className="slide-card__thumb-inner">
+        <div
+          className="slide-card__thumb-stage"
+          style={{
+            width: dims.w,
+            height: dims.h,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+          }}
+        >
+          <SlideRenderer
+            slide={slide}
+            globals={globals}
+            index={index}
+            total={total}
+            onUpdate={() => {}}
+            pageSize={pageSize}
+            scale={1}
+          />
+        </div>
       </div>
     </div>
   );

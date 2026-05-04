@@ -300,70 +300,24 @@ function DescriptivoBody({ data, update }) {
         />
       </div>
 
-      {/* Two-column area */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20 }}>
-        {/* LEFT: vector flat with cotas */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="slide-overline" style={{ fontSize: 9 }}>Vista frontal · vector</div>
-          <div style={{
-            flex: 1,
-            background: '#fafafa',
-            border: '1px solid var(--border-default)',
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '44px',
-            overflow: 'hidden'
-          }}>
-            <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%', maxHeight: '100%' }}>
-              <Slot
-                value={data.assetVector}
-                onChange={(v) => update({ assetVector: v })}
-                label="Vector flat"
-                style={{
-                  background: 'transparent',
-                  border: data.assetVector ? '0' : undefined,
-                  width: data.assetVector ? 'auto' : '100%',
-                  height: data.assetVector ? 'auto' : '100%',
-                  minWidth: data.assetVector ? 0 : 200,
-                  minHeight: data.assetVector ? 0 : 200,
-                }}
-                contain={true}
-                tightFit={true}
-              />
-              {/* Width cota */}
-              <div style={{
-                position: 'absolute', left: 0, right: 0, bottom: -24,
-                display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
-              }}>
-                <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
-                <InlineText
-                  value={data.cotaAncho}
-                  onChange={(v) => update({ cotaAncho: v })}
-                  style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', whiteSpace: 'nowrap' }}
-                />
-                <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
-              </div>
-              {/* Height cota */}
-              <div style={{
-                position: 'absolute', top: 0, bottom: 0, left: -28,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
-              }}>
-                <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
-                <InlineText
-                  value={data.cotaAlto}
-                  onChange={(v) => update({ cotaAlto: v })}
-                  style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', writingMode: 'vertical-rl', transform: 'rotate(180deg)', whiteSpace: 'nowrap' }}
-                />
-                <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
-              </div>
-            </div>
-          </div>
+      {/* Two-column area: LEFT = Layout (big), RIGHT = description + vector */}
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 20 }}>
+
+        {/* LEFT: Layout (ex Render aislado) — big */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="slide-overline" style={{ fontSize: 9 }}>Layout</div>
+          <Slot
+            value={data.assetRender}
+            onChange={(v) => update({ assetRender: v })}
+            label="Layout"
+            style={{ flex: 1 }}
+            contain={false}
+          />
         </div>
 
-        {/* RIGHT: descripción + render aislado */}
+        {/* RIGHT: descripción + vector con cotas debajo */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Descripción */}
           <div>
             <div className="slide-overline" style={{ fontSize: 9, marginBottom: 8 }}>Descriptivo</div>
             <InlineText
@@ -378,17 +332,68 @@ function DescriptivoBody({ data, update }) {
               }}
             />
           </div>
+
+          {/* Vector flat con cotas — debajo de la descripción */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div className="slide-overline" style={{ fontSize: 9 }}>Render aislado</div>
-            <Slot
-              value={data.assetRender}
-              onChange={(v) => update({ assetRender: v })}
-              label="Render aislado"
-              style={{ flex: 1 }}
-              contain={false}
-            />
+            <div className="slide-overline" style={{ fontSize: 9 }}>Vista frontal · vector</div>
+            <div style={{
+              flex: 1,
+              background: '#fafafa',
+              border: '1px solid var(--border-default)',
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '32px 32px 32px 44px',
+              overflow: 'hidden',
+            }}>
+              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%', maxHeight: '100%' }}>
+                <Slot
+                  value={data.assetVector}
+                  onChange={(v) => update({ assetVector: v })}
+                  label="Vector flat"
+                  style={{
+                    background: 'transparent',
+                    border: data.assetVector ? '0' : undefined,
+                    width: data.assetVector ? 'auto' : '100%',
+                    height: data.assetVector ? 'auto' : '100%',
+                    minWidth: data.assetVector ? 0 : 120,
+                    minHeight: data.assetVector ? 0 : 80,
+                  }}
+                  contain={true}
+                  tightFit={true}
+                />
+                {/* Width cota */}
+                <div style={{
+                  position: 'absolute', left: 0, right: 0, bottom: -24,
+                  display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
+                }}>
+                  <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
+                  <InlineText
+                    value={data.cotaAncho}
+                    onChange={(v) => update({ cotaAncho: v })}
+                    style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', whiteSpace: 'nowrap' }}
+                  />
+                  <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
+                </div>
+                {/* Height cota */}
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0, left: -28,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
+                }}>
+                  <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
+                  <InlineText
+                    value={data.cotaAlto}
+                    onChange={(v) => update({ cotaAlto: v })}
+                    style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', writingMode: 'vertical-rl', transform: 'rotate(180deg)', whiteSpace: 'nowrap' }}
+                  />
+                  <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );

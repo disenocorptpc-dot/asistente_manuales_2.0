@@ -308,10 +308,7 @@ function App() {
             <label>Proyecto</label>
             <input value={globals.title} onChange={(e) => setGlobals({ ...globals, title: e.target.value })}/>
           </div>
-          <div className="pm-field pm-field--suffix">
-            <label>Variante</label>
-            <input value={globals.suffix} onChange={(e) => setGlobals({ ...globals, suffix: e.target.value })}/>
-          </div>
+
           <div className="pm-field pm-field--prop">
             <label>Propiedad</label>
             <input value={globals.property} onChange={(e) => setGlobals({ ...globals, property: e.target.value })}/>

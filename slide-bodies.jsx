@@ -201,39 +201,8 @@ function CoverBody({ data, update, globals }) {
   const cyan = '#7dd3fc';
   const cyanStrong = '#38bdf8';
   return (
-    <div style={{ position: 'absolute', inset: 0, background: 'var(--color-ocean-blue-900)', overflow: 'hidden' }}>
-      <svg
-        viewBox="0 0 1000 700"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-      >
-        {/* Top-left diagonal cluster */}
-        <g stroke={cyan} strokeWidth="0.7" fill="none" opacity="0.55">
-          {Array.from({ length: 26 }, (_, i) => (
-            <line key={'d' + i} x1={-100 + i * 22} y1="0" x2={i * 22 + 200} y2="320" />
-          ))}
-        </g>
-        {/* Right vertical strip */}
-        <g stroke={cyan} strokeWidth="0.6" fill="none" opacity="0.45">
-          {Array.from({ length: 22 }, (_, i) => (
-            <line key={'v' + i} x1={720 + i * 14} y1="0" x2={720 + i * 14} y2="700" />
-          ))}
-        </g>
-        {/* Bottom horizontal strip */}
-        <g stroke={cyan} strokeWidth="0.6" fill="none" opacity="0.4">
-          {Array.from({ length: 18 }, (_, i) => (
-            <line key={'h' + i} x1="0" y1={460 + i * 14} x2="700" y2={460 + i * 14} />
-          ))}
-        </g>
-        {/* Concentric arcs bottom-right (geometric accent) */}
-        <g stroke={cyanStrong} strokeWidth="1.2" fill="none" opacity="0.7">
-          <circle cx="900" cy="640" r="60" />
-          <circle cx="900" cy="640" r="100" />
-          <circle cx="900" cy="640" r="140" />
-        </g>
-        {/* Cross axis */}
-        <line x1="80" y1="520" x2="540" y2="520" stroke={cyanStrong} strokeWidth="1.5" opacity="0.9" />
-      </svg>
+    <div style={{ position: 'absolute', inset: 0, background: 'url("ds/Back.webp") center/cover no-repeat', overflow: 'hidden' }}>
+
 
       {/* Top logo (Palace wordmark on brand) */}
       <div style={{ position: 'absolute', top: 56, left: 64, display: 'flex', alignItems: 'center', gap: 16 }}>

@@ -9,7 +9,9 @@ const TEMPLATES = {
     desc: 'Cubierta corporativa con líneas',
     icon: 'rectangle-vertical',
     defaults: () => ({
-      itemTitle: 'BAÑO DE HUÉSPEDES',
+      projectType: 'PROPUESTA DE DISEÑO',
+      itemTitle: 'LOGO ENTRADA',
+      siteName: 'BAGLIONI MALDIVAS',
     }),
   },
   montaje: {

@@ -204,23 +204,13 @@ function CoverBody({ data, update, globals }) {
     <div style={{ position: 'absolute', inset: 0, background: 'url("ds/Back.webp") center/cover no-repeat', overflow: 'hidden' }}>
 
 
-      {/* Top logo (Palace wordmark on brand) */}
-      <div style={{ position: 'absolute', top: 56, left: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
+      {/* Bottom right logo (Palace wordmark on brand) */}
+      <div style={{ position: 'absolute', bottom: 56, right: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
         {globals?.logoData ? (
           <img src={globals.logoData} alt="" style={{ height: 36, maxWidth: 180, objectFit: 'contain' }} />
         ) : (
           <img src="ds/logo-palace-default.svg" alt="Palace" style={{ height: 36, filter: 'brightness(0) invert(1)' }} />
         )}
-      </div>
-
-      {/* Right monogram badge */}
-      <div style={{
-        position: 'absolute', top: 56, right: 64,
-        width: 72, height: 72,
-        border: `1.5px solid ${cyan}`, borderRadius: '50%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <span style={{ color: cyan, fontSize: 28, fontWeight: 400, letterSpacing: '-0.5px' }}>P</span>
       </div>
 
       {/* Center-left content */}
@@ -230,13 +220,26 @@ function CoverBody({ data, update, globals }) {
         display: 'flex', flexDirection: 'column', gap: 20,
       }}>
         <div style={{ width: 60, height: 1, background: cyanStrong }}/>
-        <div style={{ fontSize: 18, fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: cyan }}>
-          {globals?.property || 'Propiedad'}
-        </div>
+        
+        {/* Subtitulo 1: projectType */}
+        <InlineText
+          value={data.projectType !== undefined ? data.projectType : 'TIPO DE PROYECTO'}
+          onChange={(v) => update({ projectType: v })}
+          style={{ fontSize: 18, fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: cyan }}
+        />
+        
+        {/* Titulo Principal: itemTitle */}
         <InlineText
           value={data.itemTitle}
           onChange={(v) => update({ itemTitle: v })}
           style={{ fontSize: 56, fontWeight: 400, lineHeight: 1.0, letterSpacing: '-1.6px', color: 'white' }}
+        />
+
+        {/* Subtitulo 2: siteName / property */}
+        <InlineText
+          value={data.siteName !== undefined ? data.siteName : (globals?.property || 'UBICACIÓN')}
+          onChange={(v) => update({ siteName: v })}
+          style={{ fontSize: 24, fontWeight: 300, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.85)' }}
         />
       </div>
     </div>

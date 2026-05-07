@@ -380,13 +380,22 @@ function DescriptivoBody({ data, update }) {
                 <div style={{
                   position: 'absolute', top: 0, bottom: 0, left: -28,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--color-grey-600)',
+                  overflow: 'visible',
                 }}>
                   <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
-                  <InlineText
-                    value={data.cotaAlto}
-                    onChange={(v) => update({ cotaAlto: v })}
-                    style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', writingMode: 'vertical-rl', transform: 'rotate(180deg)', whiteSpace: 'nowrap' }}
-                  />
+                  <div style={{ position: 'relative', width: 18, height: 18, flexShrink: 0, overflow: 'visible' }}>
+                    <InlineText
+                      value={data.cotaAlto}
+                      onChange={(v) => update({ cotaAlto: v })}
+                      style={{
+                        fontSize: 9, fontWeight: 500, letterSpacing: '0.4px', whiteSpace: 'nowrap',
+                        position: 'absolute',
+                        top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%) rotate(-90deg)',
+                        transformOrigin: 'center center',
+                      }}
+                    />
+                  </div>
                   <div style={{ flex: 1, width: 1, background: 'currentColor', opacity: 0.4 }} />
                 </div>
               </div>

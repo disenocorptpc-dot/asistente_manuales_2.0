@@ -283,7 +283,24 @@ function App() {
       }
       // Restore
       Object.assign(printContainer.style, prev);
-      pdf.save(`${globals.title || 'manual'}.pdf`);
+      // Build filename: Proyecto - Propiedad - DD-MM
+      const slug = (s) => (s || '').trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ');
+      const MESES = { enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12 };
+      const parseDateShort = (raw) => {
+        if (!raw) return '';
+        // Try "7 de mayo de 2026" or "07/05/2026" or "2026-05-07"
+        const m1 = raw.match(/(\d{1,2})\s+de\s+([a-záéíóú]+)/i);
+        if (m1) {
+          const d = m1[1].padStart(2,'0');
+          const mo = String(MESES[m1[2].toLowerCase()] || '').padStart(2,'0');
+          return mo ? `${d}-${mo}` : '';
+        }
+        const m2 = raw.match(/(\d{1,2})[\/\-](\d{1,2})/);
+        if (m2) return `${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
+        return raw.slice(0,5);
+      };
+      const parts = [slug(globals.title), slug(globals.property), parseDateShort(globals.date)].filter(Boolean);
+      pdf.save(`${parts.join(' - ')}.pdf`);
       showToast('PDF descargado ✓');
     } catch (e) {
       showToast('Error generando PDF: ' + e.message);

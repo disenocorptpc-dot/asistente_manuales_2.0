@@ -10,7 +10,7 @@ function PageChrome({ globals, slideIndex, total, slideLabel }) {
   return (
     <>
       <div className="page-chrome-header">
-        <div className="page-chrome-header__right" style={{ marginLeft: 'auto' }}>
+        <div className="page-chrome-header__right" style={{ position: 'absolute', top: 24, right: 32 }}>
           {globals.logoData ? (
             <img src={globals.logoData} alt="" />
           ) : (

@@ -507,45 +507,16 @@ function SlideInspector({ slide, tpl, update }) {
                   style={{ color: 'var(--fg-weak)', fontSize: 12 }}
                 ><i className="ti ti-x"></i></button>
               </div>
-              <CompactField label="Tipo" value={m.tipo} onChange={(v) => {
-                const next = [...d.materiales]; next[i] = { ...m, tipo: v }; update({ materiales: next });
-              }} />
-              <CompactField label="Material" value={m.material} onChange={(v) => {
+              <Field label="Nombre del material" value={m.material} onChange={(v) => {
                 const next = [...d.materiales]; next[i] = { ...m, material: v }; update({ materiales: next });
               }} />
-              <CompactField label="Acabado" value={m.acabado} onChange={(v) => {
-                const next = [...d.materiales]; next[i] = { ...m, acabado: v }; update({ materiales: next });
-              }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                <input
-                  type="checkbox"
-                  id={`pantone-${m.id}`}
-                  checked={m.showPantone !== false}
-                  onChange={(e) => {
-                    const next = [...d.materiales];
-                    next[i] = { ...m, showPantone: e.target.checked };
-                    update({ materiales: next });
-                  }}
-                  style={{ margin: 0 }}
-                />
-                <label htmlFor={`pantone-${m.id}`} style={{ fontSize: 10.5, color: 'var(--fg-weak)', minWidth: 56 }}>Pantone</label>
-                <input
-                  value={m.pantone || ''}
-                  disabled={m.showPantone === false}
-                  onChange={(e) => {
-                    const next = [...d.materiales]; next[i] = { ...m, pantone: e.target.value }; update({ materiales: next });
-                  }}
-                  style={{
-                    flex: 1, fontSize: 12, padding: '6px 8px',
-                    border: '1px solid var(--border-default)', borderRadius: 6, outline: 0,
-                    opacity: m.showPantone === false ? 0.4 : 1,
-                  }}
-                />
-              </div>
+              <Field label="Descripción / comentarios" value={m.descripcion} onChange={(v) => {
+                const next = [...d.materiales]; next[i] = { ...m, descripcion: v }; update({ materiales: next });
+              }} multiline />
             </div>
           ))}
           <button
-            onClick={() => update({ materiales: [...d.materiales, { id: Date.now(), tipo: 'Nuevo', material: '—', acabado: '—', pantone: '—', asset: null }] })}
+            onClick={() => update({ materiales: [...d.materiales, { id: Date.now(), material: 'Nuevo material', descripcion: 'Descripción o notas...', asset: null }] })}
             style={{
               fontSize: 12, color: 'var(--fg-accent)', fontWeight: 500,
               padding: '6px 0', display: 'flex', alignItems: 'center', gap: 4,

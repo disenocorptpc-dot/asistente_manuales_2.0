@@ -770,17 +770,7 @@ function MaterialesBody({ data, update }) {
               }}
               contain={false}
             />
-            <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-              <InlineText
-                value={m.tipo}
-                onChange={(v) => {
-                  const next = [...data.materiales];
-                  next[i] = { ...m, tipo: v };
-                  update({ materiales: next });
-                }}
-                className="slide-overline"
-                style={{ fontSize: 8.5 }}
-              />
+            <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, flex: 1, justifyContent: 'flex-start' }}>
               <InlineText
                 value={m.material}
                 onChange={(v) => {
@@ -788,36 +778,17 @@ function MaterialesBody({ data, update }) {
                   next[i] = { ...m, material: v };
                   update({ materiales: next });
                 }}
-                style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-ocean-blue-900)', lineHeight: 1.3 }}
+                style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ocean-blue-900)', lineHeight: 1.2 }}
               />
-              <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 8, borderTop: '1px solid var(--border-default)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 9.5, color: 'var(--color-grey-500)' }}>Acabado</span>
-                  <InlineText
-                    value={m.acabado}
-                    onChange={(v) => {
-                      const next = [...data.materiales];
-                      next[i] = { ...m, acabado: v };
-                      update({ materiales: next });
-                    }}
-                    style={{ fontSize: 10, color: 'var(--color-grey-700)' }}
-                  />
-                </div>
-                {m.showPantone !== false && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontSize: 9.5, color: 'var(--color-grey-500)' }}>Pantone</span>
-                    <InlineText
-                      value={m.pantone}
-                      onChange={(v) => {
-                        const next = [...data.materiales];
-                        next[i] = { ...m, pantone: v };
-                        update({ materiales: next });
-                      }}
-                      style={{ fontSize: 10, color: 'var(--color-grey-700)', fontVariantNumeric: 'tabular-nums' }}
-                    />
-                  </div>
-                )}
-              </div>
+              <InlineText
+                value={m.descripcion}
+                onChange={(v) => {
+                  const next = [...data.materiales];
+                  next[i] = { ...m, descripcion: v };
+                  update({ materiales: next });
+                }}
+                style={{ fontSize: 11, color: 'var(--color-grey-700)', lineHeight: 1.4 }}
+              />
             </div>
           </div>
         ))}

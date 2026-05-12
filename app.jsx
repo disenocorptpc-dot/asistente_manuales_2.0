@@ -30,6 +30,12 @@ async function compressSlideImages(slides) {
     for (const k of keys) {
       if (data[k]) data[k] = await compressDataUrl(data[k]);
     }
+    if (data.materiales && Array.isArray(data.materiales)) {
+      data.materiales = await Promise.all(data.materiales.map(async (m) => {
+        if (m.asset) return { ...m, asset: await compressDataUrl(m.asset) };
+        return m;
+      }));
+    }
     return { ...slide, data };
   }));
 }
@@ -157,14 +163,17 @@ function App() {
     return () => window.removeEventListener('paste', onPaste);
   }, [activeId, slides, onUpdateSlide]);
 
-  // Save / Load Project
   const saveProject = async () => {
     showToast('Guardando…');
     const currentDate = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
     const updatedGlobals = { ...globals, date: currentDate };
-    setGlobals(updatedGlobals);
-
+    
     try {
+      if (updatedGlobals.logoData) {
+        updatedGlobals.logoData = await compressDataUrl(updatedGlobals.logoData);
+      }
+      setGlobals(updatedGlobals);
+
       const compressedSlides = await compressSlideImages(slides);
       const payload = { version: 2, slides: compressedSlides, globals: updatedGlobals };
       const body = { name: globals.title || 'manual', property: globals.property || '', data: payload };

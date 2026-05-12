@@ -301,7 +301,7 @@ function DescriptivoBody({ data, update }) {
       </div>
 
       {/* Two-column area: LEFT = Layout (big), RIGHT = description + vector */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 20 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 20, minHeight: 0 }}>
 
         {/* LEFT: Layout (ex Render aislado) — big */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -471,7 +471,7 @@ function ExplosivoBody({ data, update }) {
           }}
         />
       </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, minHeight: 0 }}>
         {/* Image with bullets */}
         <div
           ref={imgRef}
@@ -672,7 +672,7 @@ function PlanosBody({ data, update }) {
           }}
         />
       </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, minHeight: 0 }}>
         <div style={{
           background: '#fafafa',
           border: '1px solid var(--border-default)',
@@ -745,7 +745,7 @@ function MaterialesBody({ data, update }) {
           }}
         />
       </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, minHeight: 0 }}>
         {data.materiales.map((m, i) => (
           <div key={m.id} style={{
             border: '1px solid var(--border-default)',

@@ -156,7 +156,7 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
               <div className="adjust-row">
                 <i className="ti ti-zoom-out" style={{ fontSize: 14 }}></i>
                 <input
-                  type="range" min="1" max="4" step="0.05"
+                  type="range" min="0.1" max="4" step="0.05"
                   value={scale}
                   onChange={e => {
                     const newScale = parseFloat(e.target.value);
@@ -270,7 +270,7 @@ function MontajeBody({ data, update }) {
           onChange={(v) => update({ assetMontaje: v })}
           label="Render de montaje a página completa"
           style={{ flex: 1 }}
-          contain={false}
+          contain={true}
         />
       </div>
     </div>
@@ -311,12 +311,12 @@ function DescriptivoBody({ data, update }) {
             onChange={(v) => update({ assetRender: v })}
             label="Layout"
             style={{ flex: 1 }}
-            contain={false}
+            contain={true}
           />
         </div>
 
         {/* RIGHT: descripción + vector con cotas debajo */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0 }}>
           {/* Descripción */}
           <div>
             <div className="slide-overline" style={{ fontSize: 9, marginBottom: 8 }}>Descriptivo</div>
@@ -334,7 +334,7 @@ function DescriptivoBody({ data, update }) {
           </div>
 
           {/* Vector flat con cotas — debajo de la descripción */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
             <div className="slide-overline" style={{ fontSize: 9 }}>Vista frontal · vector</div>
             <div style={{
               flex: 1,

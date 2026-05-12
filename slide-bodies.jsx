@@ -745,7 +745,7 @@ function MaterialesBody({ data, update }) {
           }}
         />
       </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 16, minHeight: 0 }}>
         {data.materiales.map((m, i) => (
           <div key={m.id} style={{
             border: '1px solid var(--border-default)',

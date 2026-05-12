@@ -115,9 +115,12 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
             onMouseDown={startDrag}
             draggable={false}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
-              backgroundImage: `url("${imgUrl}")`,
+              backgroundImage: `url(${imgUrl})`,
               backgroundSize: contain ? 'contain' : 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',

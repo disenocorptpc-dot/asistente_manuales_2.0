@@ -111,25 +111,22 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
       />
       {imgUrl ? (
         <>
-          <img
-            src={imgUrl}
-            alt=""
+          <div
             onMouseDown={startDrag}
             draggable={false}
             style={{
-              width: tightFit ? 'auto' : '100%',
-              height: tightFit ? 'auto' : '100%',
-              maxWidth: '100%',
-              maxHeight: '100%',
-              objectFit: contain ? 'contain' : 'cover',
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url("${imgUrl}")`,
+              backgroundSize: contain ? 'contain' : 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
               // Single unified transform: translate first (in container space), then scale
               transform: `translate(${panX}%, ${panY}%) scale(${scale})`,
               transformOrigin: 'center center',
               cursor: isAdjusting ? 'grab' : 'default',
               transition: isAdjusting ? 'none' : 'transform 0.2s',
               pointerEvents: isAdjusting ? 'auto' : 'none',
-              userSelect: 'none',
-              display: 'block',
             }}
           />
           {!isAdjusting && (

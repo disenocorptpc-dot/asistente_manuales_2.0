@@ -8,14 +8,14 @@ function compressDataUrl(src) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 1200;
+      const MAX = 1800;
       const ratio = Math.min(MAX / img.naturalWidth, MAX / img.naturalHeight, 1);
       const w = Math.round(img.naturalWidth * ratio);
       const h = Math.round(img.naturalHeight * ratio);
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const compressed = canvas.toDataURL('image/jpeg', 0.6);
+      const compressed = canvas.toDataURL('image/jpeg', 0.85);
       resolve(src && typeof src === 'object' ? { ...src, url: compressed } : compressed);
     };
     img.onerror = () => resolve(src);

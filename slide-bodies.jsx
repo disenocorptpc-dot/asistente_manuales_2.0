@@ -97,7 +97,7 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
     <div
       ref={containerRef}
       className={'slot ' + (imgUrl ? 'has-image ' : '') + (over ? 'is-over ' : '') + (isAdjusting ? 'is-adjusting' : '')}
-      style={{ ...style, position: 'relative', overflow: 'hidden' }}
+      style={{ position: 'relative', overflow: 'hidden', ...style }}
       onClick={() => { if (!imgUrl) inputRef.current?.click(); }}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}

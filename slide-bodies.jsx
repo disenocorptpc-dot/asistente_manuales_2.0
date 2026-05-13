@@ -488,6 +488,7 @@ function ExplosivoBody({ data, update }) {
             onChange={(v) => update({ assetExplosivo: v })}
             label="Render explosivo"
             style={{ position: 'absolute', inset: 0 }}
+            contain={true}
           />
           {/* Bullets */}
           {data.assetExplosivo && annotations.map(a => {

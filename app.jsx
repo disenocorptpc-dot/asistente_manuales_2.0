@@ -15,7 +15,7 @@ function compressDataUrl(src) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const compressed = canvas.toDataURL('image/jpeg', 0.85);
+      const compressed = canvas.toDataURL('image/webp', 0.85);
       resolve(src && typeof src === 'object' ? { ...src, url: compressed } : compressed);
     };
     img.onerror = () => resolve(src);

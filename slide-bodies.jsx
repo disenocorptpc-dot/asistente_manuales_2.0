@@ -420,7 +420,7 @@ function ExplosivoBody({ data, update }) {
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     // find first annotation without coords; if none, create new
-    const next = [...data.annotations];
+    const next = [...(data.annotations || [])];
     const idx = next.findIndex(a => a.x == null || a.y == null);
     if (idx >= 0) {
       next[idx] = { ...next[idx], x, y };
@@ -429,7 +429,7 @@ function ExplosivoBody({ data, update }) {
   };
 
   const updateBulletPos = (id, x, y) => {
-    const next = data.annotations.map(a => a.id === id ? { ...a, x, y } : a);
+    const next = (data.annotations || []).map(a => a.id === id ? { ...a, x, y } : a);
     update({ annotations: next });
   };
 
@@ -452,7 +452,8 @@ function ExplosivoBody({ data, update }) {
     window.addEventListener('mouseup', up);
   };
 
-  const unplaced = data.annotations.filter(a => a.x == null || a.y == null).length;
+  const annotations = data.annotations || [];
+  const unplaced = annotations.filter(a => a.x == null || a.y == null).length;
 
   return (
     <div className="slide-body">
@@ -485,7 +486,7 @@ function ExplosivoBody({ data, update }) {
             style={{ position: 'absolute', inset: 0 }}
           />
           {/* Bullets */}
-          {data.assetExplosivo && data.annotations.map(a => {
+          {data.assetExplosivo && annotations.map(a => {
             if (a.x == null || a.y == null) return null;
             const isHover = hoverId === a.id;
             return (
@@ -526,7 +527,7 @@ function ExplosivoBody({ data, update }) {
                     onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      update({ annotations: data.annotations.filter(x => x.id !== a.id) });
+                      update({ annotations: annotations.filter(x => x.id !== a.id) });
                       setHoverId(null);
                     }}
                     style={{
@@ -572,7 +573,7 @@ function ExplosivoBody({ data, update }) {
         {/* Annotations sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div className="slide-overline" style={{ fontSize: 9 }}>Anotaciones</div>
-          {data.annotations.map((a, i) => {
+          {annotations.map((a, i) => {
             const placed = a.x != null && a.y != null;
             const isHover = hoverId === a.id;
             return (
@@ -602,7 +603,7 @@ function ExplosivoBody({ data, update }) {
                 <InlineText
                   value={a.label}
                   onChange={(v) => {
-                    const next = [...data.annotations];
+                    const next = [...annotations];
                     next[i] = { ...a, label: v };
                     update({ annotations: next });
                   }}
@@ -613,7 +614,7 @@ function ExplosivoBody({ data, update }) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    update({ annotations: data.annotations.filter(x => x.id !== a.id) });
+                    update({ annotations: annotations.filter(x => x.id !== a.id) });
                   }}
                   style={{
                     opacity: isHover ? 1 : 0,
@@ -635,8 +636,8 @@ function ExplosivoBody({ data, update }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              const num = String(data.annotations.length + 1).padStart(2, '0');
-              update({ annotations: [...data.annotations, { id: Date.now(), num, label: 'Nueva anotación' }] });
+              const num = String(annotations.length + 1).padStart(2, '0');
+              update({ annotations: [...annotations, { id: Date.now(), num, label: 'Nueva anotación' }] });
             }}
             style={{
               marginTop: 8, padding: '8px 10px',
@@ -689,7 +690,7 @@ function PlanosBody({ data, update }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="slide-overline" style={{ fontSize: 9, marginBottom: 12 }}>Cotas y dimensiones</div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {data.cotas.map((c, i) => (
+            {(data.cotas || []).map((c, i) => (
               <div key={c.id} style={{
                 display: 'flex', justifyContent: 'space-between',
                 padding: '10px 0',
@@ -699,7 +700,7 @@ function PlanosBody({ data, update }) {
                 <InlineText
                   value={c.label}
                   onChange={(v) => {
-                    const next = [...data.cotas];
+                    const next = [...(data.cotas || [])];
                     next[i] = { ...c, label: v };
                     update({ cotas: next });
                   }}
@@ -708,7 +709,7 @@ function PlanosBody({ data, update }) {
                 <InlineText
                   value={c.value}
                   onChange={(v) => {
-                    const next = [...data.cotas];
+                    const next = [...(data.cotas || [])];
                     next[i] = { ...c, value: v };
                     update({ cotas: next });
                   }}
@@ -746,7 +747,7 @@ function MaterialesBody({ data, update }) {
         />
       </div>
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 16, minHeight: 0 }}>
-        {data.materiales.map((m, i) => (
+        {(data.materiales || []).map((m, i) => (
           <div key={m.id} style={{
             border: '1px solid var(--border-default)',
             borderRadius: 8,
@@ -757,7 +758,7 @@ function MaterialesBody({ data, update }) {
             <Slot
               value={m.asset}
               onChange={(v) => {
-                const next = [...data.materiales];
+                const next = [...(data.materiales || [])];
                 next[i] = { ...m, asset: v };
                 update({ materiales: next });
               }}
@@ -774,7 +775,7 @@ function MaterialesBody({ data, update }) {
               <InlineText
                 value={m.material}
                 onChange={(v) => {
-                  const next = [...data.materiales];
+                  const next = [...(data.materiales || [])];
                   next[i] = { ...m, material: v };
                   update({ materiales: next });
                 }}
@@ -783,7 +784,7 @@ function MaterialesBody({ data, update }) {
               <InlineText
                 value={m.descripcion}
                 onChange={(v) => {
-                  const next = [...data.materiales];
+                  const next = [...(data.materiales || [])];
                   next[i] = { ...m, descripcion: v };
                   update({ materiales: next });
                 }}

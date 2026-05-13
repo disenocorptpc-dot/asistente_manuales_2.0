@@ -369,7 +369,7 @@ function SlideInspector({ slide, tpl, update }) {
           <AssetField value={d.assetExplosivo} onChange={v => update({ assetExplosivo: v })} label="Render explosivo" />
         </FieldGroup>
         <FieldGroup title="Anotaciones">
-          {d.annotations.map((a, i) => (
+          {(d.annotations || []).map((a, i) => (
             <div key={a.id} style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
               <input
                 value={a.num}
@@ -399,7 +399,7 @@ function SlideInspector({ slide, tpl, update }) {
               <button
                 className="btn--icon"
                 onClick={() => {
-                  const next = d.annotations.filter(x => x.id !== a.id);
+                  const next = (d.annotations || []).filter(x => x.id !== a.id);
                   update({ annotations: next });
                 }}
                 style={{
@@ -412,8 +412,9 @@ function SlideInspector({ slide, tpl, update }) {
           ))}
           <button
             onClick={() => {
-              const num = String(d.annotations.length + 1).padStart(2, '0');
-              update({ annotations: [...d.annotations, { id: Date.now(), num, label: 'Nueva anotación' }] });
+              const current = d.annotations || [];
+              const num = String(current.length + 1).padStart(2, '0');
+              update({ annotations: [...current, { id: Date.now(), num, label: 'Nueva anotación' }] });
             }}
             style={{
               fontSize: 12, color: 'white', background: 'var(--bg-accent)',
@@ -437,12 +438,12 @@ function SlideInspector({ slide, tpl, update }) {
           <AssetField value={d.assetPlano} onChange={v => update({ assetPlano: v })} label="Plano técnico" />
         </FieldGroup>
         <FieldGroup title="Cotas">
-          {d.cotas.map((c, i) => (
+          {(d.cotas || []).map((c, i) => (
             <div key={c.id} style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
               <input
                 value={c.label}
                 onChange={(e) => {
-                  const next = [...d.cotas];
+                  const next = [...(d.cotas || [])];
                   next[i] = { ...c, label: e.target.value };
                   update({ cotas: next });
                 }}
@@ -454,7 +455,7 @@ function SlideInspector({ slide, tpl, update }) {
               <input
                 value={c.value}
                 onChange={(e) => {
-                  const next = [...d.cotas];
+                  const next = [...(d.cotas || [])];
                   next[i] = { ...c, value: e.target.value };
                   update({ cotas: next });
                 }}
@@ -465,7 +466,7 @@ function SlideInspector({ slide, tpl, update }) {
                 }}
               />
               <button
-                onClick={() => update({ cotas: d.cotas.filter(x => x.id !== c.id) })}
+                onClick={() => update({ cotas: (d.cotas || []).filter(x => x.id !== c.id) })}
                 style={{
                   width: 28, height: 28, borderRadius: 6,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -475,7 +476,7 @@ function SlideInspector({ slide, tpl, update }) {
             </div>
           ))}
           <button
-            onClick={() => update({ cotas: [...d.cotas, { id: Date.now(), label: 'Nueva cota', value: '0.00 m' }] })}
+            onClick={() => update({ cotas: [...(d.cotas || []), { id: Date.now(), label: 'Nueva cota', value: '0.00 m' }] })}
             style={{
               fontSize: 12, color: 'var(--fg-accent)', fontWeight: 500,
               padding: '6px 0', display: 'flex', alignItems: 'center', gap: 4,
@@ -490,7 +491,7 @@ function SlideInspector({ slide, tpl, update }) {
           <Field label="Título" value={d.itemTitle} onChange={v => update({ itemTitle: v })} />
         </FieldGroup>
         <FieldGroup title="Materiales">
-          {d.materiales.map((m, i) => (
+          {(d.materiales || []).map((m, i) => (
             <div key={m.id} style={{
               border: '1px solid var(--border-default)',
               borderRadius: 8,
@@ -503,20 +504,20 @@ function SlideInspector({ slide, tpl, update }) {
                   Material {i + 1}
                 </span>
                 <button
-                  onClick={() => update({ materiales: d.materiales.filter(x => x.id !== m.id) })}
+                  onClick={() => update({ materiales: (d.materiales || []).filter(x => x.id !== m.id) })}
                   style={{ color: 'var(--fg-weak)', fontSize: 12 }}
                 ><i className="ti ti-x"></i></button>
               </div>
               <Field label="Nombre del material" value={m.material} onChange={(v) => {
-                const next = [...d.materiales]; next[i] = { ...m, material: v }; update({ materiales: next });
+                const next = [...(d.materiales || [])]; next[i] = { ...m, material: v }; update({ materiales: next });
               }} />
               <Field label="Descripción / comentarios" value={m.descripcion} onChange={(v) => {
-                const next = [...d.materiales]; next[i] = { ...m, descripcion: v }; update({ materiales: next });
+                const next = [...(d.materiales || [])]; next[i] = { ...m, descripcion: v }; update({ materiales: next });
               }} multiline />
             </div>
           ))}
           <button
-            onClick={() => update({ materiales: [...d.materiales, { id: Date.now(), material: 'Nuevo material', descripcion: 'Descripción o notas...', asset: null }] })}
+            onClick={() => update({ materiales: [...(d.materiales || []), { id: Date.now(), material: 'Nuevo material', descripcion: 'Descripción o notas...', asset: null }] })}
             style={{
               fontSize: 12, color: 'var(--fg-accent)', fontWeight: 500,
               padding: '6px 0', display: 'flex', alignItems: 'center', gap: 4,
@@ -623,15 +624,16 @@ function CompactField({ label, value, onChange }) {
 }
 function AssetField({ value, onChange, label }) {
   const ref = useRef(null);
+  const srcUrl = value && typeof value === 'object' ? value.url : value;
   const handleFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = (e) => onChange(e.target.result);
     reader.readAsDataURL(file);
   };
-  return value ? (
+  return srcUrl ? (
     <div className="asset-preview" style={{ marginBottom: 10 }}>
-      <img src={value} alt={label} />
+      <img src={srcUrl} alt={label} />
       <button className="asset-preview__remove" onClick={() => onChange(null)}>×</button>
     </div>
   ) : (

@@ -8,7 +8,7 @@ function compressDataUrl(src) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 1800;
+      const MAX = 2400;
       const ratio = Math.min(MAX / img.naturalWidth, MAX / img.naturalHeight, 1);
       const w = Math.round(img.naturalWidth * ratio);
       const h = Math.round(img.naturalHeight * ratio);
@@ -290,7 +290,7 @@ function App() {
         const pageEl = pages[i].querySelector('.page') || pages[i];
         if (i > 0) pdf.addPage([dims.wMM, dims.hMM], orientation);
         const canvas = await window.html2canvas(pageEl, {
-          scale: 2,
+          scale: 3,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',

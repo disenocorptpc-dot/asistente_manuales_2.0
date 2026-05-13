@@ -112,6 +112,9 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
       />
       {imgUrl ? (
         <>
+          {tightFit && (
+            <img src={imgUrl} alt="" style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%', visibility: 'hidden', display: 'block' }} />
+          )}
           <div
             onMouseDown={startDrag}
             draggable={false}

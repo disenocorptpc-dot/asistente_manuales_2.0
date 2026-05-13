@@ -39,14 +39,15 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
 
   // Normalize value: supports legacy string, legacy {url,x,y}, or new {url,scale,panX,panY}
   const imgUrl = value && typeof value === 'object' ? value.url : (value || null);
-  const scale   = value && typeof value === 'object' ? (value.scale ?? 1) : 1;
+  const safeNum = (v, def = 0) => { const n = Number(v); return isNaN(n) ? def : n; };
+  const scale   = value && typeof value === 'object' ? safeNum(value.scale ?? 1, 1) : 1;
   // panX/panY: % offset from center. 0 = centered.
   // Migrate from old x/y (0-100, center=50) → panX/panY (center=0)
   const panX = value && typeof value === 'object'
-    ? (value.panX !== undefined ? value.panX : (value.x !== undefined ? (value.x - 50) * 0.5 : 0))
+    ? (value.panX !== undefined ? safeNum(value.panX) : (value.x !== undefined ? safeNum((value.x - 50) * 0.5) : 0))
     : 0;
   const panY = value && typeof value === 'object'
-    ? (value.panY !== undefined ? value.panY : (value.y !== undefined ? (value.y - 50) * 0.5 : 0))
+    ? (value.panY !== undefined ? safeNum(value.panY) : (value.y !== undefined ? safeNum((value.y - 50) * 0.5) : 0))
     : 0;
 
   const handleFile = (file) => {
@@ -120,7 +121,7 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
               left: 0,
               width: '100%',
               height: '100%',
-              backgroundImage: `url(${imgUrl})`,
+              backgroundImage: `url("${imgUrl}")`,
               backgroundSize: contain ? 'contain' : 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',

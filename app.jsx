@@ -216,7 +216,9 @@ function App() {
 
   const loadProject = async (id) => {
     try {
+      showToast('Cargando proyecto...');
       const res = await fetch(`/api/projects/${id}`);
+      if (!res.ok) throw new Error('Error en servidor');
       const row = await res.json();
       const data = row.data;
       if (data.slides) {
@@ -225,13 +227,23 @@ function App() {
         if (data.globals) setGlobals(data.globals);
         setProjectId(row.id);
         setShowProjects(false);
-        showToast('Proyecto cargado');
+        showToast('Proyecto cargado ✓');
       }
     } catch (e) {
       showToast('No se pudo cargar el proyecto');
       console.error(e);
     }
   };
+
+  // Auto-load project from URL if present
+  useEffectA(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('project_id');
+    if (pid) {
+      loadProject(pid);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const deleteProject = async (id, name) => {
     if (!window.confirm(`¿Eliminar «${name}»? Esta acción no se puede deshacer.`)) return;
@@ -493,6 +505,20 @@ function App() {
                                 {p.name}
                               </div>
                               <div style={{ fontSize: 11, color: '#888' }}>{new Date(p.updated_at).toLocaleString('es-MX')}</div>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const url = window.location.origin + window.location.pathname + '?project_id=' + p.id;
+                                navigator.clipboard.writeText(url);
+                                showToast('Enlace copiado al portapapeles');
+                              }}
+                              title="Copiar enlace para compartir"
+                              style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0, background: 'transparent', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'background 150ms' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#e0e7ff'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              <i className="ti ti-link"></i>
                             </button>
                             <button
                               onClick={() => deleteProject(p.id, p.name)}

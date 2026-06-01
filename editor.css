@@ -582,18 +582,27 @@ input, textarea { font-family: inherit; color: inherit; }
 
 /* Editable text on canvas */
 .editable {
-  cursor: text;
   outline: none;
   border-radius: 2px;
   transition: box-shadow 150ms;
   position: relative;
 }
-.editable:hover {
+.editable[contenteditable="true"] {
+  cursor: text;
+}
+.editable[contenteditable="true"]:hover {
   box-shadow: 0 0 0 1px var(--color-ocean-blue-300);
 }
-.editable:focus {
+.editable[contenteditable="true"]:focus {
   box-shadow: 0 0 0 2px var(--border-accent);
   background: rgba(85, 154, 219, 0.04);
+}
+/* Display placeholder when empty only in edit mode */
+.editable[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-grey-400);
+  pointer-events: none;
+  display: block;
 }
 
 /* Asset slot inside slide */

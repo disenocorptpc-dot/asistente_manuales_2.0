@@ -8,14 +8,14 @@ function compressDataUrl(src) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 4096;
+      const MAX = 2400;
       const ratio = Math.min(MAX / img.naturalWidth, MAX / img.naturalHeight, 1);
       const w = Math.round(img.naturalWidth * ratio);
       const h = Math.round(img.naturalHeight * ratio);
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const compressed = canvas.toDataURL('image/webp', 0.95);
+      const compressed = canvas.toDataURL('image/webp', 0.85);
       resolve(src && typeof src === 'object' ? { ...src, url: compressed } : compressed);
     };
     img.onerror = () => resolve(src);
@@ -259,12 +259,26 @@ function App() {
     }
   };
 
-  const exportPdf = async () => {
+  const exportPdfVector = () => {
+    showToast('Abriendo diálogo de impresión… Selecciona "Guardar como PDF".');
+    // Inject @page size dynamically matching active slide dimensions
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `@page { size: ${dims.wMM}mm ${dims.hMM}mm; margin: 0; }`;
+    document.head.appendChild(styleEl);
+
+    // Trigger native printing
+    window.print();
+
+    // Clean up style
+    document.head.removeChild(styleEl);
+  };
+
+  const exportPdfLegacy = async () => {
     if (!window.html2canvas || !window.jspdf) {
       showToast('Cargando librerías PDF…');
       return;
     }
-    showToast('Generando PDF…');
+    showToast('Generando PDF (Imagen)…');
     const { jsPDF } = window.jspdf;
     const orientation = dims.wMM > dims.hMM ? 'l' : 'p';
     try {
@@ -300,7 +314,7 @@ function App() {
           windowHeight: dims.h,
           logging: false,
         });
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, dims.wMM, dims.hMM);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, dims.wMM, dims.hMM);
       }
       // Restore
       Object.assign(printContainer.style, prev);
@@ -309,7 +323,6 @@ function App() {
       const MESES = { enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12 };
       const parseDateShort = (raw) => {
         if (!raw) return '';
-        // Try "7 de mayo de 2026" or "07/05/2026" or "2026-05-07"
         const m1 = raw.match(/(\d{1,2})\s+de\s+([a-záéíóú]+)/i);
         if (m1) {
           const d = m1[1].padStart(2,'0');
@@ -321,7 +334,7 @@ function App() {
         return raw.slice(0,5);
       };
       const parts = [slug(globals.title), slug(globals.property), parseDateShort(globals.date)].filter(Boolean);
-      pdf.save(`${parts.join(' - ')}.pdf`);
+      pdf.save(`${parts.join(' - ')} (Imagen).pdf`);
       showToast('PDF descargado ✓');
     } catch (e) {
       showToast('Error generando PDF: ' + e.message);
@@ -365,8 +378,11 @@ function App() {
             <i className="ti ti-device-floppy"></i> Guardar
           </button>
           <div className="btn-divider"/>
-          <button className="btn btn--primary" onClick={exportPdf}>
-            <i className="ti ti-file-download"></i> Exportar PDF
+          <button className="btn btn--primary" onClick={exportPdfVector} title="Guardar como PDF de alta calidad con texto seleccionable">
+            <i className="ti ti-file-type-pdf"></i> Guardar PDF (Texto)
+          </button>
+          <button className="btn btn--ghost" onClick={exportPdfLegacy} title="Generar PDF de imagen heredado">
+            <i className="ti ti-photo"></i> PDF (Imagen)
           </button>
         </div>
       </header>

@@ -7,36 +7,17 @@ function InlineText({ value, onChange, className, style, multiline, placeholder 
   const readOnly = React.useContext(window.ReadOnlyContext || React.createContext(false));
 
   useEffectS(() => {
-    if (!readOnly && ref.current && ref.current.innerText !== (value || '')) {
+    if (ref.current && ref.current.innerText !== (value || '')) {
       ref.current.innerText = value || '';
     }
-  }, [value, readOnly]);
-
-  if (readOnly) {
-    return (
-      <div
-        className={className || ''}
-        style={{
-          ...style,
-          whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
-          wordBreak: 'break-word',
-          border: 'none',
-          outline: 'none',
-          boxShadow: 'none',
-          background: 'transparent',
-        }}
-      >
-        {value || ''}
-      </div>
-    );
-  }
+  }, [value]);
 
   return (
     <div
       ref={ref}
       className={'editable ' + (className || '')}
       style={style}
-      contentEditable
+      contentEditable={!readOnly}
       suppressContentEditableWarning
       spellCheck={true}
       lang="es"
@@ -356,6 +337,7 @@ function DescriptivoBody({ data, update }) {
                 lineHeight: 1.6,
                 color: 'var(--color-grey-700)',
                 minHeight: 80,
+                textAlign: 'justify',
               }}
             />
           </div>
@@ -636,7 +618,7 @@ function ExplosivoBody({ data, update }) {
                     update({ annotations: next });
                   }}
                   multiline
-                  style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-grey-700)', flex: 1, paddingTop: 4 }}
+                  style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-grey-700)', flex: 1, paddingTop: 4, textAlign: 'justify' }}
                 />
                 {/* Remove bullet from sidebar */}
                 <button
@@ -821,7 +803,7 @@ function MaterialesBody({ data, update }) {
                   next[i] = { ...m, descripcion: v };
                   update({ materiales: next });
                 }}
-                style={{ fontSize: 11, color: 'var(--color-grey-700)', lineHeight: 1.4 }}
+                style={{ fontSize: 11, color: 'var(--color-grey-700)', lineHeight: 1.4, textAlign: 'justify' }}
               />
             </div>
           </div>

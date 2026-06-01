@@ -35,31 +35,35 @@ function PageChrome({ globals, slideIndex, total, slideLabel }) {
 }
 
 /* ───────── Slide renderer ───────── */
-function SlideRenderer({ slide, globals, index, total, onUpdate, pageSize, scale = 1 }) {
+function SlideRenderer({ slide, globals, index, total, onUpdate, pageSize, scale = 1, readOnly = false }) {
   const Body = TEMPLATE_BODIES[slide.template];
   const tpl = TEMPLATES[slide.template];
   const update = (patch) => onUpdate({ ...slide, data: { ...slide.data, ...patch } });
   const dims = PAGE_SIZES[pageSize];
+  const ReadOnlyProvider = window.ReadOnlyContext ? window.ReadOnlyContext.Provider : React.Fragment;
+
   return (
-    <div
-      className="page"
-      style={{
-        width: dims.w,
-        height: dims.h,
-        transform: `scale(${scale})`,
-        transformOrigin: 'top left',
-      }}
-    >
-      {slide.template !== 'cover' && (
-        <PageChrome
-          globals={globals}
-          slideIndex={index}
-          total={total}
-          slideLabel={tpl.name.toUpperCase()}
-        />
-      )}
-      <Body data={slide.data} update={update} globals={globals} />
-    </div>
+    <ReadOnlyProvider value={readOnly}>
+      <div
+        className="page"
+        style={{
+          width: dims.w,
+          height: dims.h,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        {slide.template !== 'cover' && (
+          <PageChrome
+            globals={globals}
+            slideIndex={index}
+            total={total}
+            slideLabel={tpl.name.toUpperCase()}
+          />
+        )}
+        <Body data={slide.data} update={update} globals={globals} />
+      </div>
+    </ReadOnlyProvider>
   );
 }
 
@@ -101,6 +105,7 @@ function SlideThumb({ slide, globals, index, total, pageSize }) {
             onUpdate={() => {}}
             pageSize={pageSize}
             scale={1}
+            readOnly={true}
           />
         </div>
       </div>

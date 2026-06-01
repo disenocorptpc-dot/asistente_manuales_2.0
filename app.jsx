@@ -553,6 +553,7 @@ function App() {
               onUpdate={() => {}}
               pageSize={tweaks.pageSize}
               scale={1}
+              readOnly={true}
             />
           </div>
         ))}

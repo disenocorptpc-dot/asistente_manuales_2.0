@@ -1,6 +1,10 @@
 /* global React */
 const { useState, useRef, useEffect, useCallback, useMemo } = React;
 
+const ReadOnlyContext = React.createContext(false);
+window.ReadOnlyContext = ReadOnlyContext;
+
+
 /* ───────── Slide template definitions ───────── */
 const TEMPLATES = {
   cover: {

@@ -4,11 +4,33 @@ const { useState: useStateS, useRef: useRefS, useEffect: useEffectS } = React;
 /* InlineText: contentEditable that calls onChange with plain text on blur/input */
 function InlineText({ value, onChange, className, style, multiline, placeholder }) {
   const ref = useRefS(null);
+  const readOnly = React.useContext(window.ReadOnlyContext || React.createContext(false));
+
   useEffectS(() => {
-    if (ref.current && ref.current.innerText !== (value || '')) {
+    if (!readOnly && ref.current && ref.current.innerText !== (value || '')) {
       ref.current.innerText = value || '';
     }
-  }, [value]);
+  }, [value, readOnly]);
+
+  if (readOnly) {
+    return (
+      <div
+        className={className || ''}
+        style={{
+          ...style,
+          whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
+          wordBreak: 'break-word',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          background: 'transparent',
+        }}
+      >
+        {value || ''}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={ref}
@@ -29,6 +51,7 @@ function InlineText({ value, onChange, className, style, multiline, placeholder 
     />
   );
 }
+
 
 /* Slot: clickable / drop-target image area with working pan+zoom */
 function Slot({ value, onChange, label, style, contain = false, tightFit = false }) {
@@ -305,10 +328,10 @@ function DescriptivoBody({ data, update }) {
       </div>
 
       {/* Two-column area: LEFT = Layout (big), RIGHT = description + vector */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 20, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', gap: 20, minHeight: 0 }}>
 
         {/* LEFT: Layout (ex Render aislado) — big */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ flex: 1.1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="slide-overline" style={{ fontSize: 9 }}>Layout</div>
           <Slot
             value={data.assetRender}
@@ -320,7 +343,7 @@ function DescriptivoBody({ data, update }) {
         </div>
 
         {/* RIGHT: descripción + vector con cotas debajo */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0 }}>
+        <div style={{ flex: 0.9, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0 }}>
           {/* Descripción */}
           <div>
             <div className="slide-overline" style={{ fontSize: 9, marginBottom: 8 }}>Descriptivo</div>
@@ -476,11 +499,11 @@ function ExplosivoBody({ data, update }) {
           }}
         />
       </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', gap: 20, minHeight: 0 }}>
         {/* Image with bullets */}
         <div
           ref={imgRef}
-          style={{ position: 'relative', minHeight: 0 }}
+          style={{ flex: 1.6, minWidth: 0, position: 'relative', minHeight: 0 }}
           onClick={placeNextBullet}
         >
           <Slot
@@ -576,7 +599,7 @@ function ExplosivoBody({ data, update }) {
         </div>
 
         {/* Annotations sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div className="slide-overline" style={{ fontSize: 9 }}>Anotaciones</div>
           {annotations.map((a, i) => {
             const placed = a.x != null && a.y != null;
@@ -678,8 +701,10 @@ function PlanosBody({ data, update }) {
           }}
         />
       </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', gap: 20, minHeight: 0 }}>
         <div style={{
+          flex: 1.6,
+          minWidth: 0,
           background: '#fafafa',
           border: '1px solid var(--border-default)',
           borderRadius: 4,
@@ -692,7 +717,7 @@ function PlanosBody({ data, update }) {
             style={{ position: 'absolute', inset: 12, background: 'transparent' }}
           />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="slide-overline" style={{ fontSize: 9, marginBottom: 12 }}>Cotas y dimensiones</div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {(data.cotas || []).map((c, i) => (
@@ -751,14 +776,17 @@ function MaterialesBody({ data, update }) {
           }}
         />
       </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 16, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 16, minHeight: 0 }}>
         {(data.materiales || []).map((m, i) => (
           <div key={m.id} style={{
+            width: 'calc((100% - 32px) / 3)',
+            height: 'calc((100% - 16px) / 2)',
             border: '1px solid var(--border-default)',
             borderRadius: 8,
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
             background: 'white',
+            boxSizing: 'border-box',
           }}>
             <Slot
               value={m.asset}

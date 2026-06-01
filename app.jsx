@@ -8,14 +8,14 @@ function compressDataUrl(src) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 2400;
+      const MAX = 4096;
       const ratio = Math.min(MAX / img.naturalWidth, MAX / img.naturalHeight, 1);
       const w = Math.round(img.naturalWidth * ratio);
       const h = Math.round(img.naturalHeight * ratio);
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const compressed = canvas.toDataURL('image/webp', 0.85);
+      const compressed = canvas.toDataURL('image/webp', 0.95);
       resolve(src && typeof src === 'object' ? { ...src, url: compressed } : compressed);
     };
     img.onerror = () => resolve(src);
@@ -300,7 +300,7 @@ function App() {
           windowHeight: dims.h,
           logging: false,
         });
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, dims.wMM, dims.hMM);
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, dims.wMM, dims.hMM);
       }
       // Restore
       Object.assign(printContainer.style, prev);

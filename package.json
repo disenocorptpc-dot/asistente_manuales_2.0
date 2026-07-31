@@ -2,6 +2,7 @@
   "name": "asistente-manuales",
   "version": "1.0.0",
   "scripts": {
+    "build": "echo 'Static build ready'",
     "db:init": "wrangler d1 execute manuales-db --local --file=./schema.sql",
     "dev": "wrangler pages dev .",
     "deploy": "wrangler pages deploy ."
@@ -10,3 +11,4 @@
     "wrangler": "^3.50.0"
   }
 }
+

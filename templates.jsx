@@ -58,6 +58,7 @@ const TEMPLATES = {
         { id: 2, num: '02', label: 'Cuerpo central — acrílico 12 mm', x: 50, y: 50 },
         { id: 3, num: '03', label: 'Base estructural — herraje oculto', x: 60, y: 78 },
       ],
+      observaciones: '',
     }),
   },
   planos: {

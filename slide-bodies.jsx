@@ -581,84 +581,125 @@ function ExplosivoBody({ data, update }) {
         </div>
 
         {/* Annotations sidebar */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 }}>
           <div className="slide-overline" style={{ fontSize: 9 }}>Anotaciones</div>
-          {annotations.map((a, i) => {
-            const placed = a.x != null && a.y != null;
-            const isHover = hoverId === a.id;
-            return (
-              <div
-                key={a.id}
-                onMouseEnter={() => setHoverId(a.id)}
-                onMouseLeave={() => setHoverId(null)}
-                style={{
-                  display: 'flex', gap: 10, alignItems: 'flex-start',
-                  padding: '4px 6px',
-                  margin: '-4px -6px',
-                  borderRadius: 6,
-                  background: isHover ? 'rgba(155,111,65,0.08)' : 'transparent',
-                  transition: 'background 120ms',
-                }}
-              >
-                <div style={{
-                  width: 24, height: 24, borderRadius: '50%',
-                  background: placed
-                    ? (isHover ? 'var(--color-bronze-600)' : 'var(--color-ocean-blue-900)')
-                    : 'transparent',
-                  border: placed ? '0' : '1.5px dashed var(--color-grey-400)',
-                  color: placed ? 'white' : 'var(--color-grey-500)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 9, fontWeight: 500, flexShrink: 0,
-                }}>{a.num}</div>
-                <InlineText
-                  value={a.label}
-                  onChange={(v) => {
-                    const next = [...annotations];
-                    next[i] = { ...a, label: v };
-                    update({ annotations: next });
-                  }}
-                  multiline
-                  style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-grey-700)', flex: 1, paddingTop: 4, textAlign: 'justify' }}
-                />
-                {/* Remove bullet from sidebar */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    update({ annotations: annotations.filter(x => x.id !== a.id) });
-                  }}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 auto', overflowY: 'auto', minHeight: 0 }}>
+            {annotations.map((a, i) => {
+              const placed = a.x != null && a.y != null;
+              const isHover = hoverId === a.id;
+              return (
+                <div
+                  key={a.id}
+                  onMouseEnter={() => setHoverId(a.id)}
+                  onMouseLeave={() => setHoverId(null)}
                   style={{
-                    opacity: isHover ? 1 : 0,
-                    transition: 'opacity 120ms',
-                    width: 18, height: 18,
-                    borderRadius: '50%',
-                    background: '#ef4444',
-                    color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 700,
-                    flexShrink: 0, marginTop: 4,
-                    cursor: 'pointer',
+                    display: 'flex', gap: 10, alignItems: 'flex-start',
+                    padding: '4px 6px',
+                    margin: '-4px -6px',
+                    borderRadius: 6,
+                    background: isHover ? 'rgba(155,111,65,0.08)' : 'transparent',
+                    transition: 'background 120ms',
                   }}
-                  title="Quitar bullet"
-                >×</button>
-              </div>
-            );
-          })}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const num = String(annotations.length + 1).padStart(2, '0');
-              update({ annotations: [...annotations, { id: Date.now(), num, label: 'Nueva anotación' }] });
-            }}
-            style={{
-              marginTop: 8, padding: '8px 10px',
-              fontSize: 11, fontWeight: 500,
-              color: 'var(--color-ocean-blue-900)',
-              background: 'transparent',
-              border: '1px dashed var(--color-grey-400)',
-              borderRadius: 6, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          ><i className="ti ti-plus"></i>Agregar bullet</button>
+                >
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: placed
+                      ? (isHover ? 'var(--color-bronze-600)' : 'var(--color-ocean-blue-900)')
+                      : 'transparent',
+                    border: placed ? '0' : '1.5px dashed var(--color-grey-400)',
+                    color: placed ? 'white' : 'var(--color-grey-500)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 500, flexShrink: 0,
+                  }}>{a.num}</div>
+                  <InlineText
+                    value={a.label}
+                    onChange={(v) => {
+                      const next = [...annotations];
+                      next[i] = { ...a, label: v };
+                      update({ annotations: next });
+                    }}
+                    multiline
+                    style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--color-grey-700)', flex: 1, paddingTop: 4, textAlign: 'justify' }}
+                  />
+                  {/* Remove bullet from sidebar */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      update({ annotations: annotations.filter(x => x.id !== a.id) });
+                    }}
+                    style={{
+                      opacity: isHover ? 1 : 0,
+                      transition: 'opacity 120ms',
+                      width: 18, height: 18,
+                      borderRadius: '50%',
+                      background: '#ef4444',
+                      color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: 700,
+                      flexShrink: 0, marginTop: 4,
+                      cursor: 'pointer',
+                    }}
+                    title="Quitar bullet"
+                  >×</button>
+                </div>
+              );
+            })}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const num = String(annotations.length + 1).padStart(2, '0');
+                update({ annotations: [...annotations, { id: Date.now(), num, label: 'Nueva anotación' }] });
+              }}
+              style={{
+                marginTop: 4, padding: '6px 10px',
+                fontSize: 11, fontWeight: 500,
+                color: 'var(--color-ocean-blue-900)',
+                background: 'transparent',
+                border: '1px dashed var(--color-grey-400)',
+                borderRadius: 6, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            ><i className="ti ti-plus"></i>Agregar bullet</button>
+          </div>
+
+          {/* Smart Observaciones Box */}
+          <div style={{
+            marginTop: 'auto',
+            padding: '8px 10px',
+            background: 'rgba(248, 250, 252, 0.85)',
+            border: '1px dashed var(--color-grey-300)',
+            borderRadius: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            flexShrink: 0,
+          }}>
+            <div style={{
+              fontSize: 9,
+              fontWeight: 600,
+              letterSpacing: '0.6px',
+              textTransform: 'uppercase',
+              color: 'var(--color-ocean-blue-800)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              <i className="ti ti-notes" style={{ fontSize: 11 }}></i> Observaciones
+            </div>
+            <InlineText
+              value={data.observaciones !== undefined ? data.observaciones : ''}
+              onChange={(v) => update({ observaciones: v })}
+              placeholder="Haz clic aquí para agregar observaciones..."
+              multiline
+              style={{
+                fontSize: 10.5,
+                lineHeight: 1.4,
+                color: 'var(--color-grey-700)',
+                minHeight: 22,
+                textAlign: 'justify'
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

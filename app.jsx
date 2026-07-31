@@ -60,6 +60,10 @@ function App() {
   const [projectId, setProjectId] = useStateA(null);
   const [showProjects, setShowProjects] = useStateA(false);
   const [projectList, setProjectList] = useStateA([]);
+  const [searchQuery, setSearchQuery] = useStateA('');
+  const [saveMenuOpen, setSaveMenuOpen] = useStateA(false);
+  const [isDirty, setIsDirty] = useStateA(false);
+  const [lastSavedAt, setLastSavedAt] = useStateA(null);
 
   // Tweaks protocol
   useEffectA(() => {
@@ -109,6 +113,7 @@ function App() {
   const activeIndex = slides.findIndex(s => s.id === (activeSlide && activeSlide.id));
 
   const onUpdateSlide = useCallbackA((next) => {
+    setIsDirty(true);
     setSlides(curr => {
       const old = curr.find(s => s.id === next.id);
       if (old && old.template === 'cover' && old.data.itemTitle !== next.data.itemTitle) {
@@ -123,6 +128,11 @@ function App() {
       return curr.map(s => s.id === next.id ? next : s);
     });
   }, []);
+
+  const updateGlobalsField = (field, value) => {
+    setIsDirty(true);
+    setGlobals(prev => ({ ...prev, [field]: value }));
+  };
 
   // Paste image from clipboard
   useEffectA(() => {
@@ -163,7 +173,7 @@ function App() {
     return () => window.removeEventListener('paste', onPaste);
   }, [activeId, slides, onUpdateSlide]);
 
-  const saveProject = async () => {
+  const saveProject = async (forceAsNew = false) => {
     showToast('Guardando…');
     const currentDate = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
     const updatedGlobals = { ...globals, date: currentDate };
@@ -177,13 +187,16 @@ function App() {
       const compressedSlides = await compressSlideImages(slides);
       const payload = { version: 2, slides: compressedSlides, globals: updatedGlobals };
       const body = { name: globals.title || 'manual', property: globals.property || '', data: payload };
-      if (projectId) {
+      
+      if (projectId && !forceAsNew) {
         const res = await fetch(`/api/projects/${projectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error(await res.text());
+        setIsDirty(false);
+        setLastSavedAt(new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
         showToast('Proyecto actualizado ✓');
       } else {
         const res = await fetch('/api/projects', {
@@ -194,19 +207,93 @@ function App() {
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         setProjectId(data.id);
-        showToast('Proyecto guardado ✓');
+        setIsDirty(false);
+        setLastSavedAt(new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
+        showToast(forceAsNew ? 'Guardado como nuevo manual ✓' : 'Proyecto guardado ✓');
       }
+      setSaveMenuOpen(false);
     } catch (e) {
       showToast('Error al guardar: ' + e.message);
       console.error(e);
     }
   };
 
+  const seedDemoProjects = async () => {
+    const currentDate = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    const demos = [
+      {
+        name: 'Manual de Producción — Almare',
+        property: 'Moon Palace Cancún',
+        data: {
+          version: 2,
+          slides: [
+            { id: 's1', template: 'cover', data: { projectType: 'PROPUESTA DE DISEÑO', itemTitle: 'SEÑALÉTICA LOBBY PRINCIPAL', siteName: 'MOON PALACE CANCÚN' } },
+            { id: 's2', template: 'descriptivo', data: { itemTitle: 'TOTEM DE BIENVENIDA', sectionLabel: 'ESPECIFICACIONES TÉCNICAS', descripcion: 'Estructura de aluminio compuesto con pintura automotriz mate. Logotipo calado e iluminado con luz LED cálida 3000K.', cotaAncho: '120 cm', cotaAlto: '240 cm' } }
+          ],
+          globals: { title: 'Manual de Producción — Almare', property: 'Moon Palace Cancún', corp: 'Corporativo THG', dept: 'Departamento de Diseño Gráfico', date: currentDate }
+        }
+      },
+      {
+        name: 'Guía de Identidad & Señalética Exterior',
+        property: 'Le Blanc Spa Resort',
+        data: {
+          version: 2,
+          slides: [
+            { id: 's1', template: 'cover', data: { projectType: 'GUÍA DE IDENTIDAD', itemTitle: 'PLACA HABITACIÓN VIP', siteName: 'LE BLANC CANCÚN' } },
+            { id: 's2', template: 'descriptivo', data: { itemTitle: 'PLACA HABITACIÓN PRESIDENCIAL', sectionLabel: 'MATERIALES', descripcion: 'Latón cepillado de 3mm grabado con ácido y pintura horneada en tono titanio satinado.', cotaAncho: '40 cm', cotaAlto: '15 cm' } }
+          ],
+          globals: { title: 'Guía de Identidad & Señalética Exterior', property: 'Le Blanc Spa Resort', corp: 'Corporativo THG', dept: 'Diseño Señalético', date: currentDate }
+        }
+      },
+      {
+        name: 'Manual de Stand Expo Hostelería 2026',
+        property: 'Corporativo Palace',
+        data: {
+          version: 2,
+          slides: [
+            { id: 's1', template: 'cover', data: { projectType: 'PROYECTO ESPECIAL', itemTitle: 'STAND PRINCIPAL EXPO 2026', siteName: 'CENTRO DE CONVENCIONES' } },
+            { id: 's2', template: 'montaje', data: { label: 'Render General del Stand' } }
+          ],
+          globals: { title: 'Manual de Stand Expo Hostelería 2026', property: 'Corporativo Palace', corp: 'Corporativo THG', dept: 'Arquitectura Comercial', date: currentDate }
+        }
+      },
+      {
+        name: 'Catálogo de Uniformes & Materiales VIP',
+        property: 'Beach Palace',
+        data: {
+          version: 2,
+          slides: [
+            { id: 's1', template: 'cover', data: { projectType: 'CATÁLOGO CORPORATIVO', itemTitle: 'PINES Y GAFETES', siteName: 'BEACH PALACE CANCÚN' } }
+          ],
+          globals: { title: 'Catálogo de Uniformes & Materiales VIP', property: 'Beach Palace', corp: 'Corporativo THG', dept: 'Diseño Corporativo', date: currentDate }
+        }
+      }
+    ];
+
+    try {
+      for (const demo of demos) {
+        await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(demo)
+        });
+      }
+    } catch (e) {
+      console.error('Error creando demos:', e);
+    }
+  };
+
   const loadProjectsList = async () => {
     try {
       const res = await fetch('/api/projects');
-      const data = await res.json();
-      setProjectList(data);
+      let data = await res.json();
+      if (!data || data.length === 0) {
+        showToast('Generando manuales de prueba…');
+        await seedDemoProjects();
+        const res2 = await fetch('/api/projects');
+        data = await res2.json();
+      }
+      setProjectList(data || []);
       setShowProjects(true);
     } catch (e) {
       showToast('Error cargando proyectos');
@@ -227,10 +314,43 @@ function App() {
         if (data.globals) setGlobals(data.globals);
         setProjectId(row.id);
         setShowProjects(false);
+        setIsDirty(false);
         showToast('Proyecto cargado ✓');
       }
     } catch (e) {
       showToast('No se pudo cargar el proyecto');
+      console.error(e);
+    }
+  };
+
+  const duplicateProject = async (id, originalName) => {
+    try {
+      showToast('Duplicando manual…');
+      const res = await fetch(`/api/projects/${id}`);
+      if (!res.ok) throw new Error('Error al obtener proyecto');
+      const row = await res.json();
+      
+      const newName = `${originalName || 'Manual'} (Copia)`;
+      const body = {
+        name: newName,
+        property: row.property || '',
+        data: row.data
+      };
+      
+      const postRes = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!postRes.ok) throw new Error(await postRes.text());
+      
+      // Reload list & notify
+      const listRes = await fetch('/api/projects');
+      const listData = await listRes.json();
+      setProjectList(listData);
+      showToast(`Manual duplicado como «${newName}» ✓`);
+    } catch (e) {
+      showToast('Error al duplicar: ' + e.message);
       console.error(e);
     }
   };
@@ -357,26 +477,56 @@ function App() {
         <div className="topbar__projectmeta">
           <div className="pm-field pm-field--title">
             <label>Proyecto</label>
-            <input value={globals.title} onChange={(e) => setGlobals({ ...globals, title: e.target.value })}/>
+            <input value={globals.title} onChange={(e) => updateGlobalsField('title', e.target.value)}/>
           </div>
 
           <div className="pm-field pm-field--prop">
             <label>Propiedad</label>
-            <input value={globals.property} onChange={(e) => setGlobals({ ...globals, property: e.target.value })}/>
+            <input value={globals.property} onChange={(e) => updateGlobalsField('property', e.target.value)}/>
           </div>
           <div className="pm-field pm-field--date">
             <label>Fecha</label>
-            <input value={globals.date} onChange={(e) => setGlobals({ ...globals, date: e.target.value })}/>
+            <input value={globals.date} onChange={(e) => updateGlobalsField('date', e.target.value)}/>
           </div>
         </div>
 
         <div className="topbar__actions">
-          <button className="btn btn--ghost" onClick={loadProjectsList}>
+          {/* Status Indicator */}
+          {isDirty ? (
+            <div className="save-status-pill save-status-pill--dirty" title="Hay cambios sin guardar">
+              <span className="save-status-dot"></span> Sin guardar
+            </div>
+          ) : lastSavedAt ? (
+            <div className="save-status-pill save-status-pill--saved" title={`Última sincronización: ${lastSavedAt}`}>
+              <span className="save-status-dot"></span> {lastSavedAt}
+            </div>
+          ) : null}
+
+          <button className="btn btn--ghost" onClick={() => { setSearchQuery(''); loadProjectsList(); }}>
             <i className="ti ti-folder-open"></i> Abrir
           </button>
-          <button className="btn btn--ghost" onClick={saveProject}>
-            <i className="ti ti-device-floppy"></i> Guardar
-          </button>
+
+          {/* Save & Save As Split Dropdown */}
+          <div className="save-dropdown-wrapper">
+            <button className="btn btn--ghost" onClick={() => saveProject(false)}>
+              <i className="ti ti-device-floppy"></i> Guardar
+            </button>
+            <button className="btn btn--ghost" style={{ padding: '0 6px', marginLeft: -4 }} onClick={() => setSaveMenuOpen(v => !v)}>
+              <i className="ti ti-chevron-down" style={{ fontSize: 12 }}></i>
+            </button>
+
+            {saveMenuOpen && (
+              <div className="save-dropdown-menu">
+                <button className="save-dropdown-item" onClick={() => saveProject(false)}>
+                  <i className="ti ti-device-floppy"></i> Guardar cambios
+                </button>
+                <button className="save-dropdown-item" onClick={() => saveProject(true)}>
+                  <i className="ti ti-copy"></i> Guardar como nuevo manual
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="btn-divider"/>
           <button className="btn btn--primary" onClick={exportPdfVector} title="Guardar como PDF de alta calidad con texto seleccionable">
             <i className="ti ti-file-type-pdf"></i> Guardar PDF (Texto)
@@ -484,74 +634,139 @@ function App() {
 
       {/* PROJECTS MODAL */}
       {showProjects && (() => {
+        const filteredList = projectList.filter(p => {
+          if (!searchQuery.trim()) return true;
+          const q = searchQuery.toLowerCase();
+          return (p.name || '').toLowerCase().includes(q) || (p.property || '').toLowerCase().includes(q);
+        });
+
         // Group projects by property
         const groups = {};
-        projectList.forEach(p => {
+        filteredList.forEach(p => {
           const grp = p.property || 'Sin propiedad';
           if (!groups[grp]) groups[grp] = [];
           groups[grp].push(p);
         });
         const groupEntries = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+
+        const formatDateFriendly = (dateStr) => {
+          if (!dateStr) return '';
+          try {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('es-MX', {
+              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+          } catch (e) {
+            return dateStr;
+          }
+        };
+
         return (
-          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="modal-content" style={{ background: '#fff', padding: 24, borderRadius: 8, width: 460, maxWidth: '90%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h3 style={{ margin: 0 }}>Proyectos guardados</h3>
-                <button className="btn btn--ghost" onClick={() => setShowProjects(false)} style={{ padding: 4 }}><i className="ti ti-x"></i></button>
+          <div className="modal-overlay" onClick={() => setShowProjects(false)}>
+            <div className="modal-card" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-header__title">
+                  <div className="modal-header__icon">
+                    <i className="ti ti-folder"></i>
+                  </div>
+                  <div>
+                    <h3>Manuales Guardados</h3>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>{projectList.length} manuales disponibles</div>
+                  </div>
+                </div>
+                <button className="modal-close-btn" onClick={() => setShowProjects(false)}>
+                  <i className="ti ti-x"></i>
+                </button>
               </div>
-              {projectList.length === 0 ? (
-                <p style={{ color: '#666', fontSize: 14 }}>No hay proyectos guardados.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: 420, overflowY: 'auto' }}>
-                  {groupEntries.map(([grp, projects]) => (
-                    <div key={grp}>
-                      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: '#888', marginBottom: 6, paddingBottom: 4, borderBottom: '1px solid #eee' }}>
-                        <i className="ti ti-building" style={{ marginRight: 4 }}></i>{grp}
+
+              {/* Search Bar */}
+              <div className="modal-search-area">
+                <div className="modal-search-box">
+                  <i className="ti ti-search search-icon"></i>
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre de manual o propiedad..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  {searchQuery && (
+                    <button className="clear-btn" onClick={() => setSearchQuery('')}>
+                      <i className="ti ti-x"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="modal-body">
+                {filteredList.length === 0 ? (
+                  <div style={{ textTransform: 'none', textAlign: 'center', padding: '36px 12px', color: '#64748b' }}>
+                    <i className="ti ti-folder-off" style={{ fontSize: 36, color: '#cbd5e1', marginBottom: 8, display: 'block' }}></i>
+                    {searchQuery ? `No se encontraron manuales que coincidan con "${searchQuery}"` : 'No hay manuales guardados todavía.'}
+                  </div>
+                ) : (
+                  groupEntries.map(([grp, projects]) => (
+                    <div className="project-group" key={grp}>
+                      <div className="project-group__header">
+                        <i className="ti ti-building"></i> {grp} ({projects.length})
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {projects.map(p => (
-                          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <button
-                              className="btn"
-                              style={{ flex: 1, justifyContent: 'flex-start', textAlign: 'left', padding: '10px 12px', border: '1px solid #ddd', background: projectId === p.id ? '#f0f7ff' : '#fff' }}
+                        {projects.map(p => {
+                          const isActive = projectId === p.id;
+                          return (
+                            <div
+                              key={p.id}
+                              className={`project-card ${isActive ? 'project-card--active' : ''}`}
                               onClick={() => loadProject(p.id)}
                             >
-                              <div style={{ fontWeight: 500 }}>
-                                {projectId === p.id && <span style={{ color: 'var(--color-ocean-blue-500)', marginRight: 6, fontSize: 10 }}>●</span>}
-                                {p.name}
+                              <div className="project-card__info">
+                                <div className="project-card__header">
+                                  <span className="project-card__title">{p.name || 'Sin título'}</span>
+                                  {p.property && <span className="project-card__badge">{p.property}</span>}
+                                  {isActive && <span className="project-card__active-indicator">● Abierto</span>}
+                                </div>
+                                <div className="project-card__date">
+                                  <i className="ti ti-clock" style={{ fontSize: 13 }}></i>
+                                  {formatDateFriendly(p.updated_at)}
+                                </div>
                               </div>
-                              <div style={{ fontSize: 11, color: '#888' }}>{new Date(p.updated_at).toLocaleString('es-MX')}</div>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const url = window.location.origin + window.location.pathname + '?project_id=' + p.id;
-                                navigator.clipboard.writeText(url);
-                                showToast('Enlace copiado al portapapeles');
-                              }}
-                              title="Copiar enlace para compartir"
-                              style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0, background: 'transparent', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'background 150ms' }}
-                              onMouseEnter={e => { e.currentTarget.style.background = '#e0e7ff'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                            >
-                              <i className="ti ti-link"></i>
-                            </button>
-                            <button
-                              onClick={() => deleteProject(p.id, p.name)}
-                              title="Eliminar proyecto"
-                              style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0, background: 'transparent', color: '#aaa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'background 150ms, color 150ms' }}
-                              onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#aaa'; }}
-                            >
-                              <i className="ti ti-trash"></i>
-                            </button>
-                          </div>
-                        ))}
+
+                              <div className="project-card__actions" onClick={e => e.stopPropagation()}>
+                                <button
+                                  className="action-btn action-btn--duplicate"
+                                  title="Duplicar este manual como una nueva copia"
+                                  onClick={() => duplicateProject(p.id, p.name)}
+                                >
+                                  <i className="ti ti-copy"></i>
+                                </button>
+                                <button
+                                  className="action-btn action-btn--link"
+                                  title="Copiar enlace para compartir"
+                                  onClick={() => {
+                                    const url = window.location.origin + window.location.pathname + '?project_id=' + p.id;
+                                    navigator.clipboard.writeText(url);
+                                    showToast('Enlace copiado al portapapeles ✓');
+                                  }}
+                                >
+                                  <i className="ti ti-link"></i>
+                                </button>
+                                <button
+                                  className="action-btn action-btn--danger"
+                                  title="Eliminar manual"
+                                  onClick={() => deleteProject(p.id, p.name)}
+                                >
+                                  <i className="ti ti-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </div>
         );

@@ -432,6 +432,15 @@ function SlideInspector({ slide, tpl, update }) {
             Tras agregarlo, haz clic en la imagen para colocarlo. Puedes arrastrarlo para reposicionarlo.
           </p>
         </FieldGroup>
+        <FieldGroup title="Observaciones (opcional)">
+          <Field
+            label="Notas adicionales"
+            value={d.observaciones || ''}
+            onChange={v => update({ observaciones: v })}
+            multiline
+            placeholder="Escribe observaciones o notas adicionales..."
+          />
+        </FieldGroup>
       </>}
 
       {tpl.id === 'planos' && <>
@@ -554,11 +563,9 @@ function ProjectInspector({ globals, setGlobals }) {
       <div className="inspector-section">
         <h4 className="inspector-section__title">Datos del proyecto</h4>
         <Field label="Título del proyecto" value={globals.title} onChange={v => setGlobals({ ...globals, title: v })} />
-        <Field label="Sufijo / variante" value={globals.suffix} onChange={v => setGlobals({ ...globals, suffix: v })} placeholder="BP, BV, etc." />
         <Field label="Propiedad / hotel" value={globals.property} onChange={v => setGlobals({ ...globals, property: v })} />
         <Field label="Fecha de elaboración" value={globals.date} onChange={v => setGlobals({ ...globals, date: v })} placeholder="Ej. 12 Abril 2026" />
         <Field label="Departamento" value={globals.dept} onChange={v => setGlobals({ ...globals, dept: v })} />
-        <Field label="Corporativo" value={globals.corp} onChange={v => setGlobals({ ...globals, corp: v })} />
       </div>
       <div className="inspector-section">
         <h4 className="inspector-section__title">Logotipo del proyecto</h4>

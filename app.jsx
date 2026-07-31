@@ -1,4 +1,4 @@
-/* global React, ReactDOM, SEED_SLIDES, PAGE_SIZES, SlidesPanel, Inspector, SlideRenderer, TWEAK_DEFAULTS */
+/* global React, ReactDOM, SEED_SLIDES, PAGE_SIZES, SlidesPanel, Inspector, SlideRenderer, TWEAK_DEFAULTS, Import3DModal */
 const { useState: useStateA, useEffect: useEffectA, useRef: useRefA, useCallback: useCallbackA } = React;
 
 /* Compress a base64 dataURL or {url, ...} object to a smaller JPEG for storage */
@@ -64,6 +64,7 @@ function App() {
   const [saveMenuOpen, setSaveMenuOpen] = useStateA(false);
   const [isDirty, setIsDirty] = useStateA(false);
   const [lastSavedAt, setLastSavedAt] = useStateA(null);
+  const [showImport3D, setShowImport3D] = useStateA(false);
 
   // Tweaks protocol
   useEffectA(() => {
@@ -133,6 +134,23 @@ function App() {
     setIsDirty(true);
     setGlobals(prev => ({ ...prev, [field]: value }));
   };
+
+  /* Importador 3D: aplica un parche por plantilla, sobre la primera slide de cada tipo. */
+  const applyImport3D = useCallbackA((patches, pieceCount) => {
+    setIsDirty(true);
+    setSlides(curr => {
+      const done = new Set();
+      return curr.map(s => {
+        const patch = patches[s.template];
+        if (!patch || done.has(s.template)) return s;
+        done.add(s.template);
+        return { ...s, data: { ...s.data, ...patch } };
+      });
+    });
+    setShowImport3D(false);
+    const n = Object.keys(patches).length;
+    showToast(`3D importado: ${pieceCount} piezas → ${n} ${n === 1 ? 'slide' : 'slides'} ✓`);
+  }, []);
 
   // Paste image from clipboard
   useEffectA(() => {
@@ -431,6 +449,11 @@ function App() {
             </div>
           ) : null}
 
+          <button className="btn btn--ghost" onClick={() => setShowImport3D(true)}
+            title="Precargar el manual desde un archivo FBX u OBJ">
+            <i className="ti ti-cube-3d-sphere"></i> Importar 3D
+          </button>
+
           <button className="btn btn--ghost" onClick={() => { setSearchQuery(''); loadProjectsList(); }}>
             <i className="ti ti-folder-open"></i> Abrir
           </button>
@@ -700,6 +723,15 @@ function App() {
           </div>
         );
       })()}
+
+      {/* IMPORTADOR 3D */}
+      {showImport3D && (
+        <Import3DModal
+          slides={slides}
+          onClose={() => setShowImport3D(false)}
+          onApply={applyImport3D}
+        />
+      )}
 
       {/* PRINT CONTAINER — only visible when printing */}
       <div className="print-container" aria-hidden="true">

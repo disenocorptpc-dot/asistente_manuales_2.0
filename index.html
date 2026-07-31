@@ -74,9 +74,46 @@
   <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
 
+  <!-- Three.js para el importador 3D. Es ESM-only, así que va por import map y se
+       expone en window.loadThree() para los scripts de Babel. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    /* Carga DIFERIDA y memoizada: son ~1.5 MB que sólo debe pagar quien use el
+       importador, no todo el que abra un manual a revisarlo. Además, si el CDN
+       falla, la app sigue funcionando: nadie se entera hasta pedir un import. */
+    window.loadThree = (() => {
+      let pending = null;
+      return () => {
+        if (!pending) {
+          pending = (async () => {
+            const THREE = await import('three');
+            const [{ FBXLoader }, { OBJLoader }] = await Promise.all([
+              import('three/addons/loaders/FBXLoader.js'),
+              import('three/addons/loaders/OBJLoader.js'),
+            ]);
+            return { THREE, FBXLoader, OBJLoader };
+          })();
+          pending.catch((e) => {
+            console.error('[import3d] Three.js no cargó:', e);
+            pending = null;   // permite reintentar en el siguiente import
+          });
+        }
+        return pending;
+      };
+    })();
+  </script>
+
   <script type="text/babel" src="templates.jsx"></script>
   <script type="text/babel" src="slide-bodies.jsx"></script>
   <script type="text/babel" src="panels.jsx"></script>
+  <script type="text/babel" src="import3d.jsx"></script>
   <script type="text/babel" src="app.jsx"></script>
 </body>
 </html>

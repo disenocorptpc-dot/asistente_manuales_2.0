@@ -1156,3 +1156,208 @@ input, textarea { font-family: inherit; color: inherit; }
   color: #64748b;
 }
 
+
+/* ───────── Importador 3D ───────── */
+.modal-card--import3d { width: 880px; }
+
+.i3d-drop { min-height: 220px; }
+.i3d-drop .ti-cube-3d-sphere { font-size: 34px; }
+.i3d-drop code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  background: var(--bg-alternative, #f5f5f5);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.i3d-working, .i3d-error {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 56px 16px; text-align: center;
+}
+.i3d-working .ti { font-size: 30px; color: var(--color-ocean-blue-600, #1f62aa); }
+.i3d-working p { margin: 0; font-size: 14px; font-weight: 500; }
+.i3d-working span { font-size: 11.5px; color: var(--fg-weak); }
+.i3d-error .ti { font-size: 30px; color: var(--color-red-700, #b91c1c); }
+.i3d-error p { margin: 0; font-size: 13px; color: var(--color-red-800, #991b1b); max-width: 460px; }
+.i3d-spin { animation: i3d-rotate 900ms linear infinite; }
+@keyframes i3d-rotate { to { transform: rotate(360deg); } }
+
+.i3d-summary {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px; margin-bottom: 14px;
+}
+.i3d-stat {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 9px 11px; border-radius: 8px;
+  background: var(--bg-alternative, #f5f5f5);
+  border: 1px solid var(--border-default, #e5e5e5);
+}
+.i3d-stat label {
+  font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fg-weak); font-weight: 600;
+}
+.i3d-stat strong { font-size: 13.5px; font-weight: 600; color: var(--fg-default, #171717); }
+.i3d-stat--unit select {
+  font-size: 12.5px; padding: 1px 4px; border-radius: 5px;
+  border: 1px solid var(--border-default, #d4d4d4); background: #fff;
+}
+.i3d-detected { font-size: 10px; color: var(--color-green-700, #15803d); font-weight: 600; }
+
+.i3d-views { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.i3d-view { margin: 0; }
+.i3d-view img {
+  width: 100%; aspect-ratio: 4 / 3; object-fit: contain; display: block;
+  background: #fff; border: 1px solid var(--border-default, #e5e5e5); border-radius: 8px;
+}
+.i3d-view figcaption {
+  margin-top: 5px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fg-weak); font-weight: 600; text-align: center;
+}
+
+.i3d-spread { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.i3d-spread label {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fg-weak); font-weight: 600; white-space: nowrap;
+}
+.i3d-spread input[type="range"] { flex: 1; }
+.i3d-spread span { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--fg-weak); min-width: 38px; }
+
+.i3d-section { margin-bottom: 18px; }
+.i3d-section h4 {
+  margin: 0 0 8px; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--fg-weak); font-weight: 700;
+}
+
+.i3d-table {
+  border: 1px solid var(--border-default, #e5e5e5); border-radius: 8px; overflow: hidden;
+  max-height: 232px; overflow-y: auto;
+}
+.i3d-row {
+  display: grid; grid-template-columns: 1.5fr 1fr auto auto;
+  gap: 10px; align-items: center;
+  padding: 7px 11px; font-size: 12px;
+  border-bottom: 1px solid var(--border-default, #f5f5f5);
+}
+.i3d-row:last-child { border-bottom: none; }
+.i3d-row:nth-child(even) { background: var(--bg-alternative, #fafafa); }
+.i3d-row__name { font-weight: 600; color: var(--fg-default, #171717); }
+.i3d-row__mat { color: var(--fg-weak); }
+.i3d-row__dim { color: var(--fg-weak); font-variant-numeric: tabular-nums; font-size: 11px; }
+.i3d-chip {
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+  background: var(--bg-accent-weak, rgba(85,154,219,0.12));
+  color: var(--color-ocean-blue-700, #1b4e89); white-space: nowrap;
+}
+.i3d-chip--muted {
+  background: var(--bg-warning-weak, rgba(247,191,59,0.14));
+  color: #92600e;
+}
+
+.i3d-targets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.i3d-target {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto;
+  gap: 0 9px; align-items: center;
+  padding: 8px 11px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border-default, #e5e5e5);
+  transition: background 120ms, border-color 120ms;
+}
+.i3d-target:hover { background: var(--bg-alternative, #fafafa); }
+.i3d-target input { grid-row: span 2; }
+.i3d-target__label { font-size: 12.5px; font-weight: 600; }
+.i3d-target__hint { font-size: 10.5px; color: var(--fg-weak); }
+.i3d-target.is-missing { opacity: 0.45; cursor: not-allowed; }
+
+.i3d-note {
+  display: flex; gap: 7px; align-items: flex-start;
+  margin: 10px 0 0; padding: 9px 11px; border-radius: 8px;
+  background: var(--bg-warning-weak, rgba(247,191,59,0.12));
+  font-size: 11.5px; line-height: 1.45; color: #7a5308;
+}
+.i3d-note .ti { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+.i3d-footer {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 13px 20px; border-top: 1px solid var(--border-default, #f1f5f9);
+  background: var(--bg-alternative, #fafafa);
+}
+
+.i3d-controls { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; }
+.i3d-controls .i3d-spread { flex: 1; margin-bottom: 0; }
+.i3d-axis { display: flex; align-items: center; gap: 8px; }
+.i3d-axis label {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fg-weak); font-weight: 600; white-space: nowrap;
+}
+.i3d-axis select {
+  font-size: 12px; padding: 3px 6px; border-radius: 6px;
+  border: 1px solid var(--border-default, #d4d4d4); background: #fff;
+}
+
+.i3d-chip--bad {
+  background: rgba(185,28,28,0.12);
+  color: var(--color-red-800, #991b1b);
+  cursor: help;
+}
+.i3d-row { grid-template-columns: 1.4fr 1fr auto auto auto; }
+
+/* Fila de pieza con interruptor de visibilidad en el alzado */
+.i3d-row { grid-template-columns: auto 1.3fr 1fr auto auto auto auto; cursor: pointer; }
+.i3d-row:hover { background: var(--bg-accent-weak, rgba(85,154,219,0.08)); }
+.i3d-row input[type="checkbox"] { cursor: pointer; margin: 0; }
+.i3d-row.is-off { opacity: 0.42; }
+.i3d-row.is-off .i3d-row__name { text-decoration: line-through; }
+.i3d-row__segs {
+  font-size: 10.5px; color: var(--fg-weak); font-variant-numeric: tabular-nums;
+  min-width: 44px; text-align: right; cursor: help;
+}
+.i3d-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.i3d-section__head h4 { margin-bottom: 8px; }
+.i3d-section__hint { font-size: 10.5px; color: var(--fg-weak); }
+.i3d-view__empty {
+  width: 100%; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center;
+  background: var(--bg-alternative, #fafafa); border: 1px dashed var(--border-default, #d4d4d4);
+  border-radius: 8px; font-size: 11px; color: var(--fg-weak); text-align: center;
+}
+
+/* Vistas y lista de piezas en paralelo, para ver el alzado mientras se apagan piezas */
+.modal-card--import3d { width: 1080px; }
+.i3d-review {
+  display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+  gap: 16px; align-items: start; margin-bottom: 14px;
+}
+.i3d-views { grid-template-columns: 1fr 1fr; margin-bottom: 0; }
+.i3d-view--wide { grid-column: 1 / -1; }
+.i3d-view--wide img, .i3d-view--wide .i3d-view__empty { aspect-ratio: 16 / 9; }
+.i3d-section--pieces { margin-bottom: 0; }
+.i3d-section--pieces .i3d-table { max-height: 330px; }
+.i3d-section--pieces .i3d-row { grid-template-columns: auto 1.25fr 1fr auto auto auto; font-size: 11.5px; }
+.i3d-section--pieces .i3d-row__dim { display: none; }
+.i3d-section__hint { display: block; margin: 0 0 8px; line-height: 1.4; }
+.i3d-linkbtn {
+  font-size: 11px; font-weight: 600; color: var(--color-ocean-blue-600, #1f62aa);
+  text-decoration: underline; background: none; padding: 0;
+}
+@media (max-width: 1120px) {
+  .i3d-review { grid-template-columns: 1fr; }
+}
+
+/* Alturas relativas al viewport: el bloque de revision debe caber sin scroll,
+   tanto en 720p como en pantallas grandes. */
+.modal-card--import3d { max-height: 93vh; }
+.i3d-review .i3d-view img,
+.i3d-review .i3d-view__empty { aspect-ratio: auto; height: 19vh; object-fit: contain; }
+.i3d-review .i3d-view--wide img,
+.i3d-review .i3d-view--wide .i3d-view__empty { aspect-ratio: auto; height: 26vh; }
+.i3d-review .i3d-view figcaption { margin-top: 3px; }
+.i3d-section--pieces .i3d-table { max-height: 47vh; }
+.i3d-summary { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.i3d-stat { padding: 6px 9px; }
+.i3d-stat strong { font-size: 12.5px; }
+
+/* Filas de una sola linea: con 10 piezas cabe la lista completa sin scroll interno,
+   que es justo lo que hace facil apagar una pieza cualquiera. */
+.i3d-section--pieces .i3d-row { padding: 4px 9px; gap: 7px; align-items: center; }
+.i3d-section--pieces .i3d-row > span {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.i3d-section--pieces .i3d-chip { padding: 1px 6px; font-size: 9.5px; }

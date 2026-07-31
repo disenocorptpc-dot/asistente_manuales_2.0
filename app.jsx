@@ -218,81 +218,10 @@ function App() {
     }
   };
 
-  const seedDemoProjects = async () => {
-    const currentDate = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-    const demos = [
-      {
-        name: 'Manual de Producción — Almare',
-        property: 'Moon Palace Cancún',
-        data: {
-          version: 2,
-          slides: [
-            { id: 's1', template: 'cover', data: { projectType: 'PROPUESTA DE DISEÑO', itemTitle: 'SEÑALÉTICA LOBBY PRINCIPAL', siteName: 'MOON PALACE CANCÚN' } },
-            { id: 's2', template: 'descriptivo', data: { itemTitle: 'TOTEM DE BIENVENIDA', sectionLabel: 'ESPECIFICACIONES TÉCNICAS', descripcion: 'Estructura de aluminio compuesto con pintura automotriz mate. Logotipo calado e iluminado con luz LED cálida 3000K.', cotaAncho: '120 cm', cotaAlto: '240 cm' } }
-          ],
-          globals: { title: 'Manual de Producción — Almare', property: 'Moon Palace Cancún', corp: 'Corporativo THG', dept: 'Departamento de Diseño Gráfico', date: currentDate }
-        }
-      },
-      {
-        name: 'Guía de Identidad & Señalética Exterior',
-        property: 'Le Blanc Spa Resort',
-        data: {
-          version: 2,
-          slides: [
-            { id: 's1', template: 'cover', data: { projectType: 'GUÍA DE IDENTIDAD', itemTitle: 'PLACA HABITACIÓN VIP', siteName: 'LE BLANC CANCÚN' } },
-            { id: 's2', template: 'descriptivo', data: { itemTitle: 'PLACA HABITACIÓN PRESIDENCIAL', sectionLabel: 'MATERIALES', descripcion: 'Latón cepillado de 3mm grabado con ácido y pintura horneada en tono titanio satinado.', cotaAncho: '40 cm', cotaAlto: '15 cm' } }
-          ],
-          globals: { title: 'Guía de Identidad & Señalética Exterior', property: 'Le Blanc Spa Resort', corp: 'Corporativo THG', dept: 'Diseño Señalético', date: currentDate }
-        }
-      },
-      {
-        name: 'Manual de Stand Expo Hostelería 2026',
-        property: 'Corporativo Palace',
-        data: {
-          version: 2,
-          slides: [
-            { id: 's1', template: 'cover', data: { projectType: 'PROYECTO ESPECIAL', itemTitle: 'STAND PRINCIPAL EXPO 2026', siteName: 'CENTRO DE CONVENCIONES' } },
-            { id: 's2', template: 'montaje', data: { label: 'Render General del Stand' } }
-          ],
-          globals: { title: 'Manual de Stand Expo Hostelería 2026', property: 'Corporativo Palace', corp: 'Corporativo THG', dept: 'Arquitectura Comercial', date: currentDate }
-        }
-      },
-      {
-        name: 'Catálogo de Uniformes & Materiales VIP',
-        property: 'Beach Palace',
-        data: {
-          version: 2,
-          slides: [
-            { id: 's1', template: 'cover', data: { projectType: 'CATÁLOGO CORPORATIVO', itemTitle: 'PINES Y GAFETES', siteName: 'BEACH PALACE CANCÚN' } }
-          ],
-          globals: { title: 'Catálogo de Uniformes & Materiales VIP', property: 'Beach Palace', corp: 'Corporativo THG', dept: 'Diseño Corporativo', date: currentDate }
-        }
-      }
-    ];
-
-    try {
-      for (const demo of demos) {
-        await fetch('/api/projects', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(demo)
-        });
-      }
-    } catch (e) {
-      console.error('Error creando demos:', e);
-    }
-  };
-
   const loadProjectsList = async () => {
     try {
       const res = await fetch('/api/projects');
-      let data = await res.json();
-      if (!data || data.length === 0) {
-        showToast('Generando manuales de prueba…');
-        await seedDemoProjects();
-        const res2 = await fetch('/api/projects');
-        data = await res2.json();
-      }
+      const data = await res.json();
       setProjectList(data || []);
       setShowProjects(true);
     } catch (e) {

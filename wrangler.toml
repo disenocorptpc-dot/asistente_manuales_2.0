@@ -2,5 +2,11 @@ name = "asistente-manuales"
 compatibility_date = "2026-07-31"
 pages_build_output_dir = "."
 
+[[d1_databases]]
+binding = "DB"
+database_name = "manuales-db"
+database_id = "4ebd1f32-0b58-4f9e-b1c7-f824d034e88f"
+
+
 
 

@@ -110,6 +110,11 @@
     })();
   </script>
 
+  <!-- Lector de metadatos del FBX. JS plano, sin Babel: no lo necesita y así
+       está disponible antes de que se transpile cualquier .jsx. -->
+  <script src="fbx-meta.js"></script>
+  <script src="ai-prompts.js"></script>
+
   <script type="text/babel" src="templates.jsx"></script>
   <script type="text/babel" src="slide-bodies.jsx"></script>
   <script type="text/babel" src="panels.jsx"></script>

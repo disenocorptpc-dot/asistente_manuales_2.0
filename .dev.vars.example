@@ -1,0 +1,35 @@
+# Copia este archivo como `.dev.vars` (sin `.example`) y pon tu key ahí.
+# `.dev.vars` está en .gitignore: nunca se commitea.
+# En producción, estas mismas variables van en Cloudflare Pages →
+# Settings → Environment variables.
+
+# API key de Google AI Studio. Los modelos de TEXTO entran en el tier gratuito.
+GEMINI_API_KEY=
+
+# Modelo de texto para redactar descripciones.
+AI_TEXT_MODEL=gemini-2.5-flash
+
+# Proveedor del render con IA: "gemini" o "workers-ai".
+#   gemini     → Gemini 2.5 Flash Image ("Nano Banana"). Se pega mucho a la
+#                imagen base. Requiere cuenta de PAGO: la generación de
+#                imágenes no está en el tier gratuito.
+#   workers-ai → Stable Diffusion XL img2img en Cloudflare. Tiene cuota
+#                gratuita, pero para usarlo hay que agregar el binding a
+#                wrangler.toml:
+#                    [ai]
+#                    binding = "AI"
+#                y en local requiere sesión de wrangler (`npx wrangler login`).
+AI_RENDER_PROVIDER=gemini
+
+# Modelo de imagen. Depende del proveedor:
+#   gemini     → gemini-2.5-flash-image
+#   workers-ai → @cf/runwayml/stable-diffusion-v1-5-img2img
+#                OJO: tiene que ser un modelo img2img. El SDXL base es sólo
+#                texto→imagen y rechaza la imagen de entrada.
+AI_IMAGE_MODEL=gemini-2.5-flash-image
+
+# Sólo para workers-ai: cuánta libertad tiene sobre el prerender.
+# Medido contra la Letra R: 0.45 devuelve casi una copia (cambia 2% de los
+# pixeles), 0.75 cambia 12% conservando la silueta, 0.95 cambia 25% y empieza
+# a deformar. 0.75 es el punto de equilibrio.
+AI_RENDER_STRENGTH=0.75

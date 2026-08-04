@@ -7,6 +7,12 @@ binding = "DB"
 database_name = "manuales-db"
 database_id = "4ebd1f32-0b58-4f9e-b1c7-f824d034e88f"
 
+# Workers AI — el render con IA cuando AI_RENDER_PROVIDER=workers-ai.
+# Tiene cuota gratuita y no requiere API key, pero sí sesión de Cloudflare:
+# en local, `npx wrangler login`.
+[ai]
+binding = "AI"
+
 
 
 

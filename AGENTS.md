@@ -11,6 +11,10 @@
 - **Repositorio Git**: `https://github.com/disenocorptpc-dot/asistente_manuales_2.0.git`
 - **Producción URL**: `https://asistente-manuales-2-0.pages.dev/`
 - **Infraestructura Cloud**: Cloudflare Pages con Functions (`functions/api/*`) y Cloudflare D1 Database.
+- **Addon de Blender (repo aparte)**: `https://github.com/disenocorptpc-dot/fbx_manuales_addon`
+  Produce los metadatos que `fbx-meta.js` lee de los FBX. Los dos lados comparten
+  un contrato de datos documentado en el README de ese repo: si cambias uno,
+  cambias el otro, o la app deja de encontrar los metadatos **en silencio**.
 
 ---
 

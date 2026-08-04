@@ -2,3 +2,5 @@ node_modules/
 .wrangler/
 uploads/
 .env
+# Secretos de desarrollo local (API keys). NUNCA se commitean.
+.dev.vars

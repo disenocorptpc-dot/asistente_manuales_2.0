@@ -148,26 +148,71 @@ function checkManifold(THREE, mesh) {
   return { clean: loose === 0 && over === 0, loose, over, edges: edges.size };
 }
 
-function extractPieces(THREE, root) {
+/* ───────── Metadatos del addon de Blender ─────────
+   Cuando el FBX viene del addon, el dato declarado le gana a lo deducido del
+   nombre: el nombre es una convención y los metadatos son una afirmación. */
+
+/* El nombre CRUDO del objeto, que es la llave con la que el addon lo grabó.
+   `obj.name` no sirve: FBXLoader lo pasa por sanitizeNodeName y convierte los
+   espacios en guiones bajos. */
+function rawObjectName(obj) {
+  return (obj.userData && obj.userData.originalName) || obj.name || '';
+}
+
+function metaDeObjeto(meta, obj) {
+  if (!meta || !meta.objetos) return null;
+  return meta.objetos[rawObjectName(obj)] || null;
+}
+
+function metaDeMaterial(meta, mat) {
+  if (!meta || !meta.materiales || !mat) return null;
+  return meta.materiales[mat.name] || null;
+}
+
+function extractPieces(THREE, root, meta) {
   const pieces = [];
+  const excluidas = [];
   root.updateMatrixWorld(true);
   root.traverse((obj) => {
     if (!obj.isMesh || !obj.geometry) return;
+    const objMeta = metaDeObjeto(meta, obj);
+
+    /* Marcado como helper en Blender: fuera de la lista Y fuera de los renders.
+       Basta con apagarlo, porque las vistas se renderizan desde `root`, no
+       desde `pieces`. Es justo lo que salva al render de la curva sobrante del
+       import de SVG. */
+    if (objMeta && objMeta.incluir === false) {
+      obj.visible = false;
+      excluidas.push(prettyName(rawObjectName(obj)) || rawObjectName(obj));
+      return;
+    }
+    obj.visible = true;
+
     const box = new THREE.Box3().setFromObject(obj);
     if (box.isEmpty()) return;
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+    const matMeta = metaDeMaterial(meta, mat);
     const tris = obj.geometry.index
       ? obj.geometry.index.count / 3
       : (obj.geometry.attributes.position ? obj.geometry.attributes.position.count / 3 : 0);
+
+    /* Espesor y calibre: lo declarado en el addon manda; si no, se lee del
+       nombre como siempre. */
+    const specs = readSpecs(cleanToken(obj.name) + ' ' + cleanToken((mat && mat.name) || ''));
+    if (matMeta && matMeta.espesor_mm) specs.espesorMm = matMeta.espesor_mm;
+    if (matMeta && matMeta.calibre) specs.calibre = matMeta.calibre;
+
     pieces.push({
       rawName: obj.name || '',
       rawMaterial: (mat && mat.name) || '',
-      name: prettyName(obj.name),
-      material: prettyName((mat && mat.name) || 'Sin material'),
-      /* Sobre el nombre ya limpio: si no, el sufijo de duplicado contamina el calibre. */
-      specs: readSpecs(cleanToken(obj.name) + ' ' + cleanToken((mat && mat.name) || '')),
+      name: (objMeta && objMeta.nombre) || prettyName(obj.name),
+      material: (matMeta && matMeta.nombre) || prettyName((mat && mat.name) || 'Sin material'),
+      cantidad: (objMeta && objMeta.cantidad) || 1,
+      meta: objMeta || null,
+      matMeta: matMeta || null,
+      specs,
       size: { x: size.x, y: size.y, z: size.z },
       center: { x: center.x, y: center.y, z: center.z },
       volume: size.x * size.y * size.z,
@@ -176,7 +221,16 @@ function extractPieces(THREE, root) {
       object: obj,
     });
   });
-  return pieces;
+  return { pieces, excluidas };
+}
+
+/* Caja del conjunto, contando SÓLO las piezas del manual.
+   `Box3.setFromObject(root)` incluye a los descendientes invisibles, así que un
+   helper apagado se colaría en las cotas y en el encuadre de la cámara. */
+function boxOfPieces(THREE, pieces) {
+  const box = new THREE.Box3();
+  pieces.forEach(p => box.expandByObject(p.object));
+  return box;
 }
 
 /* Eje de despiece = eje de MENOR dimensión del conjunto (el "espesor").
@@ -437,7 +491,7 @@ function renderViews(THREE, root, pieces, opts) {
 
   const out = {};
   try {
-    const box = new THREE.Box3().setFromObject(root);
+    const box = boxOfPieces(THREE, pieces);
     const size = box.getSize(new THREE.Vector3());
     const axis = opts.axis || thicknessAxis(size);
     const iso = viewDirFor(THREE, axis);
@@ -474,7 +528,7 @@ function renderViews(THREE, root, pieces, opts) {
     });
     root.updateMatrixWorld(true);
 
-    const exBox = new THREE.Box3().setFromObject(root);
+    const exBox = boxOfPieces(THREE, pieces);
     const exCam = new THREE.OrthographicCamera();
     frameOrtho(THREE, exCam, exBox, iso, aspect, 1.16);
     renderer.render(scene, exCam);
@@ -537,10 +591,46 @@ function buildMaterialRows(pieces) {
     .map(([material, list], i) => {
       const esp = list.map(p => p.specs.espesorMm).filter(Boolean);
       const cal = list.map(p => p.specs.calibre).filter(Boolean);
-      const bits = [`${list.length} ${list.length === 1 ? 'pieza' : 'piezas'}: ${list.map(p => p.name).join(', ')}.`];
-      if (esp.length) bits.push(`Espesor declarado: ${Array.from(new Set(esp)).join(' / ')} mm.`);
-      if (cal.length) bits.push(`Calibre: ${Array.from(new Set(cal)).join(' / ')}.`);
-      return { id: i + 1, material, descripcion: bits.join(' '), asset: null };
+      const mm = list.find(p => p.matMeta) ? list.find(p => p.matMeta).matMeta : null;
+
+      let descripcion;
+      let fuente = 'nombres';
+      if (mm && mm.descripcion) {
+        /* Escrita a mano en Blender: se respeta tal cual. Quien la escribió sabe
+           más que cualquier redacción automática. */
+        descripcion = mm.descripcion;
+        fuente = 'blender';
+      } else {
+        /* Sin descripción, se enuncian los datos capturados. Nunca se inventa:
+           redactar de verdad es trabajo del panel de IA. */
+        const bits = [];
+        if (mm) {
+          if (mm.acabado) bits.push(`Acabado: ${mm.acabado}.`);
+          if (mm.color) bits.push(`Color: ${mm.color}.`);
+          if (mm.proceso) bits.push(`Proceso: ${mm.proceso}.`);
+          if (mm.proveedor) bits.push(`Proveedor: ${mm.proveedor}.`);
+          if (mm.notas) bits.push(mm.notas.replace(/\.?$/, '.'));
+          if (bits.length) fuente = 'metadatos';
+        }
+        /* Espesor y calibre van con los demás datos del material; la frase de
+           piezas cierra. Al revés quedaba "Proceso: … 1 pieza: … Calibre: 20". */
+        if (esp.length) bits.push(`Espesor declarado: ${Array.from(new Set(esp)).join(' / ')} mm.`);
+        if (cal.length) bits.push(`Calibre: ${Array.from(new Set(cal)).join(' / ')}.`);
+        bits.push(`${list.length} ${list.length === 1 ? 'pieza' : 'piezas'}: ${list.map(p => p.name).join(', ')}.`);
+        descripcion = bits.join(' ');
+      }
+
+      return {
+        id: i + 1,
+        material,
+        descripcion,
+        asset: null,
+        /* Insumo del panel de IA: los campos crudos y las piezas del grupo, para
+           poder rearmar el prompt sin volver a parsear el FBX. */
+        _meta: mm || null,
+        _fuente: fuente,
+        _piezas: list.map(p => p.name),
+      };
     });
 }
 
@@ -578,7 +668,8 @@ function spreadBullets(points, minDist = 6.5, iterations = 60) {
 
 /* Traduce el resultado del import a parches por plantilla. */
 function buildSlidePatches(result) {
-  const { pieces, views, unit, itemTitle } = result;
+  const { pieces, views, unit, itemTitle, meta } = result;
+  const proy = (meta && meta.proyecto) || null;
   const f = CM_PER_UNIT[unit];
   const total = result.totalSize;
   const roles = dimensionRoles(total);
@@ -635,14 +726,22 @@ function buildSlidePatches(result) {
   if (calibres.length) draft.push(`Calibre: ${calibres.join(', ')}.`);
   const u = pickDimUnit(Math.max(anchoCm, altoCm, fondoCm));
   draft.push(`Medidas generales: ${fmtWith(u, anchoCm)} × ${fmtWith(u, altoCm)} × ${fmtWith(u, fondoCm)}.`);
+  /* Lo capturado en el addon: dicho, no interpretado. */
+  if (proy && proy.ubicacion) draft.push(`Montaje: ${proy.ubicacion.replace(/\.?$/, '.')}`);
+  if (proy && proy.iluminado) draft.push('Pieza iluminada.');
+  if (proy && proy.notas) draft.push(proy.notas.replace(/\.?$/, '.'));
   draft.push('Pendiente de redacción: herrajes, anclaje, tolerancias y procesos de taller.');
   const descripcion = draft.join(' ');
 
+  /* El nombre de proyecto capturado en Blender le gana al nombre del archivo:
+     "Letra R — Palace" describe mejor que "LETRA_R". */
+  const titulo = (proy && proy.proyecto) || itemTitle;
+
   return {
-    cover: { itemTitle },
+    cover: { itemTitle: titulo },
     montaje: { assetMontaje: views.montaje },
     descriptivo: {
-      itemTitle,
+      itemTitle: titulo,
       descripcion,
       cotaAncho: fmtWith(u, anchoCm),
       cotaAlto: fmtWith(u, altoCm),
@@ -650,7 +749,7 @@ function buildSlidePatches(result) {
       assetVector: views.plano,
     },
     explosivo: {
-      itemTitle,
+      itemTitle: titulo,
       assetExplosivo: views.explosivo,
       annotations,
       observaciones: omitted > 0
@@ -658,7 +757,7 @@ function buildSlidePatches(result) {
         : `Despiece automático sobre el eje de espesor (${views.axis.toUpperCase()}). ${pieces.length} piezas detectadas.`,
     },
     planos: {
-      itemTitle,
+      itemTitle: titulo,
       assetPlano: views.plano,
       cotas: [
         { id: 1, label: 'Ancho total', value: fmtWith(u, anchoCm) },
@@ -666,7 +765,7 @@ function buildSlidePatches(result) {
         { id: 3, label: 'Profundidad', value: fmtWith(u, fondoCm) },
       ],
     },
-    materiales: { itemTitle, materiales: buildMaterialRows(pieces) },
+    materiales: { itemTitle: titulo, materiales: buildMaterialRows(pieces) },
   };
 }
 
@@ -677,11 +776,15 @@ async function parseFile(file, onProgress) {
   const { THREE, FBXLoader, OBJLoader } = await loadThree();
   if (onProgress) onProgress('Leyendo geometría…');
   const ext = (file.name.split('.').pop() || '').toLowerCase();
-  let root, detectedUnit = null;
+  let root, detectedUnit = null, meta = null;
 
   if (ext === 'fbx') {
     const buf = await file.arrayBuffer();
     detectedUnit = unitFromScale(detectFbxUnitScale(buf));
+    /* Los metadatos se leen del MISMO buffer, antes de parsear: FBXLoader no
+       expone las propiedades de usuario, así que el archivo se recorre dos
+       veces. La segunda pasada sólo lee cabeceras y strings — 2 ms. */
+    if (typeof window.readFbxMeta === 'function') meta = window.readFbxMeta(buf);
     root = new FBXLoader().parse(buf, '');
   } else if (ext === 'obj') {
     const text = await file.text();
@@ -690,13 +793,18 @@ async function parseFile(file, onProgress) {
     throw new Error(`Formato no soportado: .${ext}. Usa FBX u OBJ.`);
   }
 
-  const pieces = extractPieces(THREE, root);
-  if (!pieces.length) throw new Error('El archivo no contiene mallas legibles.');
+  const { pieces, excluidas } = extractPieces(THREE, root, meta);
+  if (!pieces.length) {
+    throw new Error(excluidas.length
+      ? `Las ${excluidas.length} mallas del archivo están marcadas como "no es pieza del manual" en Blender.`
+      : 'El archivo no contiene mallas legibles.');
+  }
 
-  const box = new THREE.Box3().setFromObject(root);
-  const size = box.getSize(new THREE.Vector3());
+  /* Sobre las piezas, NO sobre `root`: Box3.setFromObject no mira `visible`,
+     así que un helper apagado seguiría inflando las medidas del conjunto. */
+  const size = boxOfPieces(THREE, pieces).getSize(new THREE.Vector3());
   return {
-    THREE, root, pieces,
+    THREE, root, pieces, meta, excluidas,
     totalSize: { x: size.x, y: size.y, z: size.z },
     detectedUnit,
     triangles: pieces.reduce((s, p) => s + p.triangles, 0),
@@ -728,6 +836,14 @@ function Import3DModal({ onClose, onApply, slides }) {
   const [enabled, setEnabled] = useState3(() => {
     const m = {}; TARGETS.forEach(t => { m[t.key] = true; }); return m;
   });
+  /* Redacciones de IA aceptadas, por material. Se guardan aparte de las filas
+     para que regenerar las vistas no borre lo que ya se aprobó. */
+  const [descIA, setDescIA] = useState3({});
+  const [iaBusy, setIaBusy] = useState3(null);      // nombre del material en curso
+  const [iaError, setIaError] = useState3('');
+  const [verPrompt, setVerPrompt] = useState3(null); // { titulo, texto }
+  const [renderIA, setRenderIA] = useState3(null);
+  const [renderBusy, setRenderBusy] = useState3(false);
   const inputRef = useRef3(null);
 
   const present = new Set(slides.map(s => s.template));
@@ -798,6 +914,55 @@ function Import3DModal({ onClose, onApply, slides }) {
     return renderSilhouette(visibles, {});
   }, [views, hidden]);
 
+  /* Filas de material tal como quedarían en la slide, para poder revisarlas —
+     y redactarlas — antes de aplicar. */
+  const matRows = React.useMemo(
+    () => (parsed ? buildMaterialRows(parsed.pieces) : []),
+    [parsed]
+  );
+  const proyecto = (parsed && parsed.meta && parsed.meta.proyecto) || null;
+
+  const pedirDescripcion = async (row) => {
+    setIaBusy(row.material);
+    setIaError('');
+    try {
+      const prompt = window.AIPrompts.buildDescribePrompt(row, proyecto);
+      const r = await fetch('/api/ai/describe', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.mensaje || data.error || `HTTP ${r.status}`);
+      setDescIA(prev => ({ ...prev, [row.material]: data.texto }));
+    } catch (e) {
+      setIaError(e.message || String(e));
+    } finally {
+      setIaBusy(null);
+    }
+  };
+
+  const pedirRender = async () => {
+    setRenderBusy(true);
+    setIaError('');
+    try {
+      const prompt = window.AIPrompts.buildRenderPrompt(matRows, proyecto);
+      const base = await window.AIImage.normalizar(views.montaje, 1024);
+      const r = await fetch('/api/ai/render', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt, imagen: base }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.mensaje || data.error || `HTTP ${r.status}`);
+      setRenderIA(data.imagen);
+    } catch (e) {
+      setIaError(e.message || String(e));
+    } finally {
+      setRenderBusy(false);
+    }
+  };
+
   const togglePiece = (piece) => {
     setHidden(prev => {
       const next = new Set(prev);
@@ -812,10 +977,41 @@ function Import3DModal({ onClose, onApply, slides }) {
       pieces: parsed.pieces,
       views: { ...views, plano: planoUrl || views.plano },
       unit, totalSize: parsed.totalSize, itemTitle,
+      meta: parsed.meta,
     });
+
+    /* Las redacciones aprobadas ganan, y los campos internos (_meta, _piezas)
+       NO se aplican: sirvieron para armar el prompt y de ahí en adelante sólo
+       engordarían el manual guardado en D1. */
+    if (patches.materiales) {
+      patches.materiales.materiales = patches.materiales.materiales.map(r => {
+        const { _meta, _fuente, _piezas, ...limpia } = r;
+        return { ...limpia, descripcion: descIA[r.material] || r.descripcion };
+      });
+    }
+    /* El render con IA sustituye al prerender en las slides que muestran la
+       pieza armada. El plano y el explosivo se quedan con el técnico: ahí la
+       fidelidad geométrica es el punto. */
+    if (renderIA) {
+      if (patches.montaje) patches.montaje.assetMontaje = renderIA;
+      if (patches.descriptivo) patches.descriptivo.assetRender = renderIA;
+    }
+
     const filtered = {};
     Object.keys(patches).forEach(k => { if (enabled[k] && present.has(k)) filtered[k] = patches[k]; });
-    onApply(filtered, parsed.pieces.length);
+
+    /* El contexto para renderizar con IA se guarda en el manual, no en el modal:
+       el botón de la slide sigue existiendo mañana, cuando este import ya se
+       cerró y el manual se abrió de nuevo desde la base de datos. */
+    const aiMeta = {
+      proyecto,
+      materiales: matRows.map(r => ({
+        material: r.material,
+        _meta: r._meta,
+      })),
+    };
+
+    onApply(filtered, parsed.pieces.length, aiMeta);
   };
 
   const f = CM_PER_UNIT[unit];
@@ -830,7 +1026,8 @@ function Import3DModal({ onClose, onApply, slides }) {
             <div>
               <h3>Importar 3D</h3>
               <div style={{ fontSize: 12, color: '#64748b' }}>
-                {fileName || 'FBX u OBJ — se procesa en tu navegador, no se sube a ningún servidor'}
+                {fileName || 'FBX u OBJ — el modelo se procesa en tu navegador y no se sube; '
+                  + 'sólo el render y los datos del material salen, y sólo si pides IA'}
               </div>
             </div>
           </div>
@@ -917,21 +1114,114 @@ function Import3DModal({ onClose, onApply, slides }) {
                 </div>
               </div>
 
+              {/* Estado de los metadatos del addon. Va arriba y en grande porque es
+                  lo primero que hay que saber: si no llegaron, todo lo de abajo se
+                  está deduciendo de nombres y conviene enterarse antes de aplicar. */}
+              {(() => {
+                const m = parsed.meta;
+                const nMat = m ? Object.keys(m.materiales || {}).length : 0;
+                const nObj = m ? Object.keys(m.objetos || {}).length : 0;
+                const proy = (m && m.proyecto) || null;
+                const avisos = (m && m.avisos) || [];
+                const excluidas = parsed.excluidas || [];
+
+                if (!nMat && !nObj && !proy) {
+                  return (
+                    <div className="i3d-meta i3d-meta--none">
+                      <i className="ti ti-info-circle"></i>
+                      <div>
+                        <strong>Este archivo no trae metadatos de manual.</strong>
+                        <span>
+                          Todo lo de abajo se está deduciendo de los nombres de mallas y
+                          materiales. Para describir materiales, exporta desde Blender con
+                          el addon: <code>File → Export → FBX de manual</code>.
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="i3d-meta">
+                    <div className="i3d-meta__head">
+                      <i className="ti ti-database-cog"></i>
+                      <strong>Metadatos del addon</strong>
+                      <span className="i3d-meta__counts">
+                        {nMat} {nMat === 1 ? 'material' : 'materiales'} · {nObj} {nObj === 1 ? 'pieza' : 'piezas'} descritas
+                      </span>
+                    </div>
+                    {proy && (
+                      <dl className="i3d-meta__grid">
+                        {proy.proyecto && <><dt>Proyecto</dt><dd>{proy.proyecto}</dd></>}
+                        {proy.cliente && <><dt>Cliente</dt><dd>{proy.cliente}</dd></>}
+                        {proy.ubicacion && <><dt>Montaje</dt><dd>{proy.ubicacion}</dd></>}
+                        {proy.iluminado && <><dt>Iluminación</dt><dd>Pieza iluminada</dd></>}
+                        {proy.estilo_render && <><dt>Estilo de render</dt><dd>{proy.estilo_render}</dd></>}
+                      </dl>
+                    )}
+                    {excluidas.length > 0 && (
+                      <p className="i3d-meta__note">
+                        <i className="ti ti-eye-off"></i>
+                        Fuera del manual por marca en Blender: {excluidas.join(', ')}.
+                        No entran en la lista ni en los renders.
+                      </p>
+                    )}
+                    {avisos.map((a, i) => (
+                      <p key={i} className="i3d-meta__note i3d-meta__note--warn">
+                        <i className="ti ti-alert-triangle"></i>{a}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })()}
+
               {/* Vistas y lista de piezas EN PARALELO: al apagar una pieza hay que poder
                   ver cómo cambia el alzado en el mismo golpe de vista. */}
               <div className="i3d-review">
                 <div className="i3d-views">
                   {['montaje', 'explosivo', 'plano'].map(k => {
-                    const src = k === 'plano' ? planoUrl : views[k];
+                    const src = k === 'plano' ? planoUrl : (k === 'montaje' && renderIA ? renderIA : views[k]);
                     return (
                       <figure key={k} className={'i3d-view' + (k === 'plano' ? ' i3d-view--wide' : '')}>
                         {src
                           ? <img src={src} alt={k} />
                           : <div className="i3d-view__empty">Sin piezas visibles</div>}
+                        {/* Sólo sobre el montaje: es la única vista donde una
+                            imagen generada aporta algo. En el alzado y el
+                            explosivo la fidelidad geométrica ES el contenido. */}
+                        {k === 'montaje' && (
+                          <div className="i3d-view__ai">
+                            <button
+                              className="i3d-aibtn"
+                              disabled={renderBusy}
+                              onClick={pedirRender}
+                              title="Recrea esta imagen como foto realista, con los materiales de los metadatos"
+                            >
+                              {renderBusy
+                                ? <><i className="ti ti-loader-2 i3d-spin"></i> Renderizando…</>
+                                : <><i className="ti ti-sparkles"></i> {renderIA ? 'Renderizar otra vez' : 'Renderizar con IA'}</>}
+                            </button>
+                            <button
+                              className="i3d-aibtn i3d-aibtn--ghost"
+                              onClick={() => setVerPrompt({
+                                titulo: 'Prompt del render',
+                                texto: window.AIPrompts.buildRenderPrompt(matRows, proyecto),
+                              })}
+                              title="Ver el prompt exacto que se enviaría"
+                            ><i className="ti ti-eye"></i></button>
+                            {renderIA && (
+                              <button
+                                className="i3d-aibtn i3d-aibtn--ghost"
+                                onClick={() => setRenderIA(null)}
+                                title="Volver al prerender técnico"
+                              ><i className="ti ti-arrow-back-up"></i></button>
+                            )}
+                          </div>
+                        )}
                         <figcaption>
                           {k === 'plano'
                             ? `Alzado${hidden.size ? ` · ${hidden.size} oculta${hidden.size > 1 ? 's' : ''}` : ''}`
-                            : k}
+                            : (k === 'montaje' && renderIA ? 'Montaje · imagen generada con IA' : k)}
                         </figcaption>
                       </figure>
                     );
@@ -967,15 +1257,28 @@ function Import3DModal({ onClose, onApply, slides }) {
                           <span className="i3d-row__dim">
                             {(p.size.x * f).toFixed(1)} × {(p.size.y * f).toFixed(1)} × {(p.size.z * f).toFixed(1)} cm
                           </span>
-                          {p.specs.espesorMm
-                            ? <span className="i3d-chip">{p.specs.espesorMm} mm</span>
-                            : <span className="i3d-chip i3d-chip--muted" title="El nombre no declara espesor">sin esp.</span>}
-                          {p.health && !p.health.clean && (
-                            <span
-                              className="i3d-chip i3d-chip--bad"
-                              title={`Malla no cerrada: ${p.health.over} aristas con 3+ caras, ${p.health.loose} sueltas (de ${p.health.edges}). El contorno del alzado puede salir fragmentado.`}
-                            >malla sucia</span>
-                          )}
+                          {/* Los chips van juntos en UNA celda del grid: son
+                              condicionales, y sueltos empujaban la columna de
+                              segmentos a una posición distinta en cada fila. */}
+                          <span className="i3d-row__chips">
+                            {p.specs.espesorMm
+                              ? <span className="i3d-chip">{p.specs.espesorMm} mm</span>
+                              : <span className="i3d-chip i3d-chip--muted" title="El nombre no declara espesor">sin esp.</span>}
+                            {p.matMeta && (
+                              <span
+                                className="i3d-chip i3d-chip--meta"
+                                title={'Metadatos del material:\n' + Object.keys(p.matMeta)
+                                  .filter(k => k !== 'v' && k !== 'tipo' && k !== 'blender_nombre')
+                                  .map(k => `· ${k}: ${p.matMeta[k]}`).join('\n')}
+                              >{p.matMeta.descripcion ? 'descrito' : 'con datos'}</span>
+                            )}
+                            {p.health && !p.health.clean && (
+                              <span
+                                className="i3d-chip i3d-chip--bad"
+                                title={`Malla no cerrada: ${p.health.over} aristas con 3+ caras, ${p.health.loose} sueltas (de ${p.health.edges}). El contorno del alzado puede salir fragmentado.`}
+                              >malla sucia</span>
+                            )}
+                          </span>
                           <span
                             className="i3d-row__segs"
                             title={`${segs} segmentos de contorno en el alzado.`}
@@ -1014,6 +1317,66 @@ function Import3DModal({ onClose, onApply, slides }) {
                 </div>
               </div>
 
+              {/* Descripciones de material: lo que va a quedar escrito en la
+                  slide, revisable ANTES de aplicar. Es también el lugar donde
+                  se ve si los campos capturados en Blender alcanzaron. */}
+              <div className="i3d-section">
+                <div className="i3d-section__head">
+                  <h4>Descripciones de material</h4>
+                  {Object.keys(descIA).length > 0 && (
+                    <button className="i3d-linkbtn" onClick={() => setDescIA({})}>
+                      Descartar las redacciones de IA
+                    </button>
+                  )}
+                </div>
+                {iaError && (
+                  <p className="i3d-ai-error">
+                    <i className="ti ti-alert-triangle"></i>
+                    {iaError}
+                    <span> Puedes ver el prompt con el ojo y pegarlo en AI Studio a mano.</span>
+                  </p>
+                )}
+                <div className="i3d-mats">
+                  {matRows.map(row => {
+                    const texto = descIA[row.material] || row.descripcion;
+                    const deIA = !!descIA[row.material];
+                    return (
+                      <div className="i3d-mat" key={row.material}>
+                        <div className="i3d-mat__head">
+                          <strong>{row.material}</strong>
+                          <span className={'i3d-chip i3d-chip--' + (
+                            deIA ? 'meta' : (row._fuente === 'blender' ? 'meta' : (row._fuente === 'metadatos' ? '' : 'muted'))
+                          )}>
+                            {deIA ? 'redactado con IA'
+                              : row._fuente === 'blender' ? 'escrito en Blender'
+                              : row._fuente === 'metadatos' ? 'armado con metadatos'
+                              : 'sólo nombres'}
+                          </span>
+                          <button
+                            className="i3d-aibtn"
+                            disabled={iaBusy === row.material}
+                            onClick={() => pedirDescripcion(row)}
+                          >
+                            {iaBusy === row.material
+                              ? <><i className="ti ti-loader-2 i3d-spin"></i> Redactando…</>
+                              : <><i className="ti ti-sparkles"></i> {deIA ? 'Otra vez' : 'Redactar con IA'}</>}
+                          </button>
+                          <button
+                            className="i3d-aibtn i3d-aibtn--ghost"
+                            onClick={() => setVerPrompt({
+                              titulo: `Prompt · ${row.material}`,
+                              texto: window.AIPrompts.buildDescribePrompt(row, proyecto),
+                            })}
+                            title="Ver el prompt exacto que se enviaría"
+                          ><i className="ti ti-eye"></i></button>
+                        </div>
+                        <p className="i3d-mat__desc">{texto}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="i3d-section">
                 <h4>Slides que se van a precargar</h4>
                 <div className="i3d-targets">
@@ -1047,6 +1410,28 @@ function Import3DModal({ onClose, onApply, slides }) {
             <button className="btn btn--primary" onClick={apply}>
               <i className="ti ti-wand"></i> Precargar slides
             </button>
+          </div>
+        )}
+
+        {/* Ver el prompt sirve para dos cosas: juzgar si los metadatos alcanzan
+            antes de gastar una llamada, y copiarlo a AI Studio a mano cuando no
+            hay API key configurada. */}
+        {verPrompt && (
+          <div className="i3d-prompt" onClick={() => setVerPrompt(null)}>
+            <div className="i3d-prompt__card" onClick={e => e.stopPropagation()}>
+              <div className="i3d-prompt__head">
+                <strong>{verPrompt.titulo}</strong>
+                <button
+                  className="i3d-aibtn i3d-aibtn--ghost"
+                  onClick={() => navigator.clipboard && navigator.clipboard.writeText(verPrompt.texto)}
+                  title="Copiar para pegarlo en AI Studio"
+                ><i className="ti ti-copy"></i> Copiar</button>
+                <button className="modal-close-btn" onClick={() => setVerPrompt(null)}>
+                  <i className="ti ti-x"></i>
+                </button>
+              </div>
+              <pre>{verPrompt.texto}</pre>
+            </div>
           </div>
         )}
       </div>

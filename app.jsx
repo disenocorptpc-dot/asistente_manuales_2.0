@@ -136,8 +136,12 @@ function App() {
   };
 
   /* Importador 3D: aplica un parche por plantilla, sobre la primera slide de cada tipo. */
-  const applyImport3D = useCallbackA((patches, pieceCount) => {
+  const applyImport3D = useCallbackA((patches, pieceCount, aiMeta) => {
     setIsDirty(true);
+    /* Los metadatos de material viajan en `globals`, que es lo que se serializa
+       junto al manual. Así el botón de "renderizar con IA" de las slides sigue
+       teniendo con qué armar el prompt después de guardar y volver a abrir. */
+    if (aiMeta) setGlobals(prev => ({ ...prev, aiMeta }));
     setSlides(curr => {
       const done = new Set();
       return curr.map(s => {

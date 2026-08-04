@@ -34,12 +34,32 @@ function InlineText({ value, onChange, className, style, multiline, placeholder 
 }
 
 
-/* Slot: clickable / drop-target image area with working pan+zoom */
-function Slot({ value, onChange, label, style, contain = false, tightFit = false }) {
+/* Cualquier imagen → data URL PNG. El endpoint de render necesita bytes, y el
+   valor de un Slot puede ser un data URL (viene del import) o una ruta de
+   /uploads (viene de un archivo subido). */
+async function toDataUrl(url) {
+  if (/^data:/.test(url)) return url;
+  const r = await fetch(url);
+  const blob = await r.blob();
+  return new Promise((ok, err) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(fr.result);
+    fr.onerror = err;
+    fr.readAsDataURL(blob);
+  });
+}
+
+/* Slot: clickable / drop-target image area with working pan+zoom.
+   `aiMeta` ({ proyecto, materiales }) enciende el botón de render con IA. Sólo
+   se pasa en las slides donde la pieza se ve armada: en el alzado y el
+   explosivo una imagen generada sería contraproducente. */
+function Slot({ value, onChange, label, style, contain = false, tightFit = false, aiMeta = null }) {
   const inputRef = useRefS(null);
   const containerRef = useRefS(null);
   const [over, setOver] = useStateS(false);
   const [isAdjusting, setIsAdjusting] = useStateS(false);
+  const [aiBusy, setAiBusy] = useStateS(false);
+  const [aiErr, setAiErr] = useStateS('');
 
   // Normalize value: supports legacy string, legacy {url,x,y}, or new {url,scale,panX,panY}
   const imgUrl = value && typeof value === 'object' ? value.url : (value || null);
@@ -63,6 +83,37 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
 
   const handleUpdate = (patch) => {
     onChange({ url: imgUrl, scale, panX, panY, ...patch });
+  };
+
+  /* El original se guarda en `urlBase` para poder volver: una imagen generada
+     nunca debe ser un camino de ida, porque el prerender técnico es el dato
+     fiel y el render con IA es una interpretación. */
+  const urlBase = value && typeof value === 'object' ? value.urlBase : null;
+
+  const renderConIA = async () => {
+    if (!imgUrl || !aiMeta) return;
+    setAiBusy(true);
+    setAiErr('');
+    try {
+      /* Se reencuadra a un tamaño que el modelo respete: si no, devuelve un
+         cuadrado y achata la pieza. */
+      const base = await window.AIImage.normalizar(await toDataUrl(urlBase || imgUrl), 1024);
+      const prompt = window.AIPrompts.buildRenderPrompt(aiMeta.materiales, aiMeta.proyecto);
+      const r = await fetch('/api/ai/render', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt, imagen: base }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.mensaje || data.error || `HTTP ${r.status}`);
+      /* Se reinicia el encuadre: la imagen nueva no tiene por qué compartir
+         proporciones con el prerender. */
+      onChange({ url: data.imagen, urlBase: urlBase || imgUrl, scale: 1, panX: 0, panY: 0 });
+    } catch (e) {
+      setAiErr(e.message || String(e));
+    } finally {
+      setAiBusy(false);
+    }
   };
 
   // Pan limit: how far we can push the image before it reveals white
@@ -142,6 +193,24 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
           />
           {!isAdjusting && (
             <div className="slot__actions">
+              {aiMeta && (
+                <button
+                  className="slot__action-btn slot__action-btn--ai"
+                  disabled={aiBusy}
+                  onClick={(e) => { e.stopPropagation(); renderConIA(); }}
+                  title="Renderizar con IA: recrea esta imagen como foto realista con los materiales del manual"
+                ><i className={aiBusy ? 'ti ti-loader-2 i3d-spin' : 'ti ti-sparkles'}></i></button>
+              )}
+              {urlBase && (
+                <button
+                  className="slot__action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange({ url: urlBase, scale: 1, panX: 0, panY: 0 });
+                  }}
+                  title="Volver al render técnico original"
+                ><i className="ti ti-arrow-back-up"></i></button>
+              )}
               <button
                 className="slot__action-btn"
                 onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }}
@@ -157,6 +226,20 @@ function Slot({ value, onChange, label, style, contain = false, tightFit = false
                 onClick={(e) => { e.stopPropagation(); onChange(null); }}
                 title="Quitar imagen"
               ><i className="ti ti-x"></i></button>
+            </div>
+          )}
+          {aiErr && !isAdjusting && (
+            <div
+              className="slot__ai-error"
+              onClick={(e) => { e.stopPropagation(); setAiErr(''); }}
+              title="Clic para cerrar"
+            ><i className="ti ti-alert-triangle"></i>{aiErr}</div>
+          )}
+          {/* Marca de imagen generada. Sólo en pantalla: si quieres que la
+              advertencia salga impresa en el PDF, se quita el @media print. */}
+          {urlBase && !isAdjusting && (
+            <div className="slot__ai-badge">
+              <i className="ti ti-sparkles"></i> Imagen generada con IA — referencia visual
             </div>
           )}
           {isAdjusting && (
@@ -261,7 +344,7 @@ function CoverBody({ data, update, globals }) {
   );
 }
 
-function MontajeBody({ data, update }) {
+function MontajeBody({ data, update, globals }) {
   return (
     <div style={{ position: 'absolute', inset: 0, paddingTop: 56, paddingBottom: 40 }}>
       <div style={{
@@ -279,13 +362,14 @@ function MontajeBody({ data, update }) {
           label="Render de montaje a página completa"
           style={{ flex: 1 }}
           contain={true}
+          aiMeta={globals && globals.aiMeta}
         />
       </div>
     </div>
   );
 }
 
-function DescriptivoBody({ data, update }) {
+function DescriptivoBody({ data, update, globals }) {
   return (
     <div className="slide-body">
       {/* overline + title */}
@@ -320,6 +404,7 @@ function DescriptivoBody({ data, update }) {
             label="Layout"
             style={{ flex: 1 }}
             contain={true}
+            aiMeta={globals && globals.aiMeta}
           />
         </div>
 

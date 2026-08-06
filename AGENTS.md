@@ -11,16 +11,15 @@
 - **Repositorio Git**: `https://github.com/disenocorptpc-dot/asistente_manuales_2.0.git`
 - **Producción URL**: `https://asistente-manuales-2-0.pages.dev/`
 - **Infraestructura Cloud**: Cloudflare Pages con Functions (`functions/api/*`) y Cloudflare D1 Database.
-- **Addon de Blender (repo aparte)**: `https://github.com/disenocorptpc-dot/fbx_manuales_addon`
-  Produce los metadatos (`mn_meta`, `mn_proyecto`) que la app lee de los GLB.
-  Desde el cambio de formato FBX → GLB, esos metadatos ya no se leen con un
-  parser aparte: viajan como *custom properties* → `extras` del glTF, y
+- **Addon de Blender (repo aparte)**: `https://github.com/disenocorptpc-dot/glb_manuales_addon`
+  (reemplaza a `fbx_manuales_addon`, archivado). Produce los metadatos
+  (`mn_meta`, `mn_proyecto`) que la app lee de los GLB. Desde el cambio de
+  formato FBX → GLB, esos metadatos ya no se leen con un parser aparte: viajan
+  como *custom properties* → `extras` del glTF (`export_extras=True`), y
   `GLTFLoader` los deja solos en `userData` al parsear (ver `readGlbMeta` en
-  `import3d.jsx`). El addon debe exportar a `.glb` con "Custom Properties"
-  activado en el exportador de Blender para que sobrevivan. Los dos lados
-  comparten un contrato de datos documentado en el README de ese repo: si
-  cambias uno, cambias el otro, o la app deja de encontrar los metadatos
-  **en silencio**.
+  `import3d.jsx`). Los dos lados comparten un contrato de datos documentado en
+  el README de ese repo: si cambias uno, cambias el otro, o la app deja de
+  encontrar los metadatos **en silencio**.
 
 ---
 

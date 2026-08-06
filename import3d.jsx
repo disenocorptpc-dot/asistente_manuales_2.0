@@ -1,6 +1,6 @@
 /* global React, loadThree */
 /* ───────── Importador 3D — Fase 1 ─────────
-   Lee un FBX/OBJ en el navegador, extrae nombres, materiales y cotas,
+   Lee un GLB/OBJ en el navegador, extrae nombres, materiales y cotas,
    y precarga las slides Montaje, Descriptivo, Explosivo, Planos y Materiales.
    Three.js entra por import map desde index.html y se carga en diferido, al
    primer uso, vía window.loadThree().                                        */
@@ -9,38 +9,9 @@ const { useState: useState3, useRef: useRef3, useCallback: useCallback3 } = Reac
 
 /* ───────── Unidades ───────── */
 
-/* cm por unidad de archivo. FBX guarda UnitScaleFactor justamente en esta escala. */
+/* cm por unidad de salida. El GLB no necesita elegirla — glTF fija 1 unidad =
+   1 metro siempre — pero OBJ no declara escala, así que se deja a mano. */
 const CM_PER_UNIT = { mm: 0.1, cm: 1, m: 100, in: 2.54, ft: 30.48 };
-
-/* Lee UnitScaleFactor de la cabecera de un FBX binario.
-   El valor va precedido por el tag de tipo 'D' (0x44) y es un double LE.
-   Devuelve null si no se encuentra — el llamador cae a centímetros. */
-function detectFbxUnitScale(arrayBuffer) {
-  const bytes = new Uint8Array(arrayBuffer);
-  const view = new DataView(arrayBuffer);
-  const key = 'UnitScaleFactor';
-  const limit = Math.min(bytes.length, 1 << 20); // la metadata vive al inicio del archivo
-  for (let i = 0; i < limit - key.length; i++) {
-    let hit = true;
-    for (let k = 0; k < key.length; k++) {
-      if (bytes[i + k] !== key.charCodeAt(k)) { hit = false; break; }
-    }
-    if (!hit) continue;
-    const stop = Math.min(i + key.length + 96, bytes.length - 9);
-    for (let j = i + key.length; j < stop; j++) {
-      if (bytes[j] !== 0x44) continue;
-      const v = view.getFloat64(j + 1, true);
-      if (Number.isFinite(v) && v > 0 && v < 1e5) return v;
-    }
-  }
-  return null;
-}
-
-function unitFromScale(factor) {
-  if (factor == null) return null;
-  const hit = Object.keys(CM_PER_UNIT).find(u => Math.abs(CM_PER_UNIT[u] - factor) < 1e-6);
-  return hit || null;
-}
 
 /* ───────── Nombres → texto legible ─────────
    La convención del equipo ya codifica material, calibre y espesor.
@@ -149,14 +120,71 @@ function checkManifold(THREE, mesh) {
 }
 
 /* ───────── Metadatos del addon de Blender ─────────
-   Cuando el FBX viene del addon, el dato declarado le gana a lo deducido del
-   nombre: el nombre es una convención y los metadatos son una afirmación. */
+   Cuando el GLB viene del addon, el dato declarado le gana a lo deducido del
+   nombre: el nombre es una convención y los metadatos son una afirmación.
 
-/* El nombre CRUDO del objeto, que es la llave con la que el addon lo grabó.
-   `obj.name` no sirve: FBXLoader lo pasa por sanitizeNodeName y convierte los
-   espacios en guiones bajos. */
+   A diferencia de FBXLoader, GLTFLoader SÍ conserva las custom properties:
+   las vuelca tal cual en `userData` a partir de `extras` (spec de glTF), así
+   que no hace falta releer el archivo por segunda vez. El addon las escribe
+   con el mismo prefijo `mn_` y valor JSON-string que usaba para FBX; sólo
+   cambia de dónde se leen. */
+
+/* El nombre CRUDO del nodo, que es la llave con la que el addon lo grabó.
+   `obj.name` no sirve: comprobado con GLTFExporter/GLTFLoader (three@0.169) que
+   GLTFLoader TAMBIÉN sanitiza espacios a guiones bajos al armar la escena —
+   igual que hacía FBXLoader — pero deja el nombre tal cual del glTF en
+   `userData.name` antes de sanearlo, así que de ahí se lee. */
 function rawObjectName(obj) {
-  return (obj.userData && obj.userData.originalName) || obj.name || '';
+  return (obj.userData && obj.userData.name) || obj.name || '';
+}
+
+function jsonSeguro(txt) {
+  try {
+    const o = JSON.parse(txt);
+    return o && typeof o === 'object' ? o : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Recorre la escena ya cargada y junta los `mn_meta`/`mn_proyecto` que
+   GLTFLoader dejó en `userData` de mallas y materiales. Nunca lanza: sin
+   metadatos la app debe seguir funcionando igual que antes. */
+function readGlbMeta(root) {
+  const materiales = {};
+  const objetos = {};
+  const avisos = [];
+  let proyecto = null;
+
+  root.traverse((obj) => {
+    if (!obj.isMesh) return;
+    const ud = obj.userData || {};
+    if (ud.mn_proyecto && !proyecto) proyecto = jsonSeguro(ud.mn_proyecto);
+    if (ud.mn_meta) {
+      const nombre = rawObjectName(obj);
+      const meta = nombre && jsonSeguro(ud.mn_meta);
+      if (meta) {
+        if (objetos[nombre]) avisos.push(`Hay más de un objeto llamado "${nombre}"; se usó el último.`);
+        objetos[nombre] = meta;
+      }
+    }
+
+    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    mats.forEach((mat) => {
+      if (!mat) return;
+      const mud = mat.userData || {};
+      if (mud.mn_proyecto && !proyecto) proyecto = jsonSeguro(mud.mn_proyecto);
+      if (mud.mn_meta && mat.name) {
+        const meta = jsonSeguro(mud.mn_meta);
+        if (meta) {
+          if (materiales[mat.name]) avisos.push(`Hay más de un material llamado "${mat.name}"; se usó el último.`);
+          materiales[mat.name] = meta;
+        }
+      }
+    });
+  });
+
+  return { materiales, objetos, proyecto, avisos };
 }
 
 function metaDeObjeto(meta, obj) {
@@ -626,7 +654,7 @@ function buildMaterialRows(pieces) {
         descripcion,
         asset: null,
         /* Insumo del panel de IA: los campos crudos y las piezas del grupo, para
-           poder rearmar el prompt sin volver a parsear el FBX. */
+           poder rearmar el prompt sin volver a parsear el GLB. */
         _meta: mm || null,
         _fuente: fuente,
         _piezas: list.map(p => p.name),
@@ -773,24 +801,26 @@ function buildSlidePatches(result) {
 
 async function parseFile(file, onProgress) {
   if (onProgress) onProgress('Cargando motor 3D…');
-  const { THREE, FBXLoader, OBJLoader } = await loadThree();
+  const { THREE, GLTFLoader, OBJLoader } = await loadThree();
   if (onProgress) onProgress('Leyendo geometría…');
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   let root, detectedUnit = null, meta = null;
 
-  if (ext === 'fbx') {
+  if (ext === 'glb') {
     const buf = await file.arrayBuffer();
-    detectedUnit = unitFromScale(detectFbxUnitScale(buf));
-    /* Los metadatos se leen del MISMO buffer, antes de parsear: FBXLoader no
-       expone las propiedades de usuario, así que el archivo se recorre dos
-       veces. La segunda pasada sólo lee cabeceras y strings — 2 ms. */
-    if (typeof window.readFbxMeta === 'function') meta = window.readFbxMeta(buf);
-    root = new FBXLoader().parse(buf, '');
+    detectedUnit = 'm';   // glTF fija 1 unidad = 1 metro siempre, por spec
+    const gltf = await new Promise((resolve, reject) => {
+      new GLTFLoader().parse(buf, '', resolve, reject);
+    });
+    root = gltf.scene;
+    /* GLTFLoader ya deja los `extras` del addon en `userData` al parsear,
+       así que los metadatos se leen recorriendo la escena, no el buffer. */
+    meta = readGlbMeta(root);
   } else if (ext === 'obj') {
     const text = await file.text();
     root = new OBJLoader().parse(text);
   } else {
-    throw new Error(`Formato no soportado: .${ext}. Usa FBX u OBJ.`);
+    throw new Error(`Formato no soportado: .${ext}. Usa GLB u OBJ.`);
   }
 
   const { pieces, excluidas } = extractPieces(THREE, root, meta);
@@ -889,8 +919,8 @@ function Import3DModal({ onClose, onApply, slides }) {
   const pickFile = (file) => {
     if (!file) return;
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (ext !== 'fbx' && ext !== 'obj') {
-      setError(`Formato no soportado: .${ext}. Usa FBX u OBJ.`);
+    if (ext !== 'glb' && ext !== 'obj') {
+      setError(`Formato no soportado: .${ext}. Usa GLB u OBJ.`);
       setStage('error');
       return;
     }
@@ -972,7 +1002,7 @@ function Import3DModal({ onClose, onApply, slides }) {
   };
 
   const apply = () => {
-    const itemTitle = cleanToken(fileName.replace(/\.(fbx|obj)$/i, '')).toUpperCase();
+    const itemTitle = cleanToken(fileName.replace(/\.(glb|obj)$/i, '')).toUpperCase();
     const patches = buildSlidePatches({
       pieces: parsed.pieces,
       views: { ...views, plano: planoUrl || views.plano },
@@ -1026,7 +1056,7 @@ function Import3DModal({ onClose, onApply, slides }) {
             <div>
               <h3>Importar 3D</h3>
               <div style={{ fontSize: 12, color: '#64748b' }}>
-                {fileName || 'FBX u OBJ — el modelo se procesa en tu navegador y no se sube; '
+                {fileName || 'GLB u OBJ — el modelo se procesa en tu navegador y no se sube; '
                   + 'sólo el render y los datos del material salen, y sólo si pides IA'}
               </div>
             </div>
@@ -1048,12 +1078,12 @@ function Import3DModal({ onClose, onApply, slides }) {
               }}
             >
               <i className="ti ti-cube-3d-sphere"></i>
-              <span className="asset-drop__title">Arrastra el FBX u OBJ de la pieza</span>
+              <span className="asset-drop__title">Arrastra el GLB u OBJ de la pieza</span>
               <span className="asset-drop__hint">
                 Se leen nombres, materiales y cotas. Los nombres de las mallas son el brief:
                 <br />conviene el patrón <code>Funcion_Material_Espesor</code>.
               </span>
-              <input ref={inputRef} type="file" accept=".fbx,.obj" style={{ display: 'none' }}
+              <input ref={inputRef} type="file" accept=".glb,.obj" style={{ display: 'none' }}
                 onChange={e => pickFile(e.target.files[0])} />
             </div>
           )}
@@ -1095,7 +1125,7 @@ function Import3DModal({ onClose, onApply, slides }) {
                     {Object.keys(CM_PER_UNIT).map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                   {parsed.detectedUnit && (
-                    <span className="i3d-detected" title="Leído de UnitScaleFactor en el FBX">
+                    <span className="i3d-detected" title="glTF fija 1 unidad = 1 metro, siempre">
                       detectado: {parsed.detectedUnit}
                     </span>
                   )}
@@ -1133,8 +1163,8 @@ function Import3DModal({ onClose, onApply, slides }) {
                         <strong>Este archivo no trae metadatos de manual.</strong>
                         <span>
                           Todo lo de abajo se está deduciendo de los nombres de mallas y
-                          materiales. Para describir materiales, exporta desde Blender con
-                          el addon: <code>File → Export → FBX de manual</code>.
+                          materiales. Para describir materiales, exporta a GLB desde Blender
+                          con el addon (con "Custom Properties" activado en el exportador).
                         </span>
                       </div>
                     </div>
@@ -1442,7 +1472,7 @@ function Import3DModal({ onClose, onApply, slides }) {
 window.Import3DModal = Import3DModal;
 /* Exportado para pruebas y para la Fase 2 (plano acotado vectorial). */
 window.Import3DInternals = {
-  detectFbxUnitScale, unitFromScale, prettyName, readSpecs, cleanToken,
+  readGlbMeta, prettyName, readSpecs, cleanToken,
   thicknessAxis, dimensionRoles, buildMaterialRows, buildSlidePatches, CM_PER_UNIT,
   parseFile, renderViews, extractPieces, frameOrtho,
   silhouetteSegments, renderSilhouette, countSegments, planeAxes, viewDirFor,

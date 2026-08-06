@@ -454,7 +454,7 @@ function App() {
           ) : null}
 
           <button className="btn btn--ghost" onClick={() => setShowImport3D(true)}
-            title="Precargar el manual desde un archivo FBX u OBJ">
+            title="Precargar el manual desde un archivo GLB u OBJ">
             <i className="ti ti-cube-3d-sphere"></i> Importar 3D
           </button>
 

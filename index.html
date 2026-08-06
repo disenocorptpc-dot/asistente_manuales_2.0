@@ -94,11 +94,11 @@
         if (!pending) {
           pending = (async () => {
             const THREE = await import('three');
-            const [{ FBXLoader }, { OBJLoader }] = await Promise.all([
-              import('three/addons/loaders/FBXLoader.js'),
+            const [{ GLTFLoader }, { OBJLoader }] = await Promise.all([
+              import('three/addons/loaders/GLTFLoader.js'),
               import('three/addons/loaders/OBJLoader.js'),
             ]);
-            return { THREE, FBXLoader, OBJLoader };
+            return { THREE, GLTFLoader, OBJLoader };
           })();
           pending.catch((e) => {
             console.error('[import3d] Three.js no cargó:', e);
@@ -110,9 +110,6 @@
     })();
   </script>
 
-  <!-- Lector de metadatos del FBX. JS plano, sin Babel: no lo necesita y así
-       está disponible antes de que se transpile cualquier .jsx. -->
-  <script src="fbx-meta.js"></script>
   <script src="ai-prompts.js"></script>
 
   <script type="text/babel" src="templates.jsx"></script>

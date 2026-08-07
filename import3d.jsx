@@ -575,9 +575,22 @@ function renderViews(THREE, root, pieces, opts) {
     const mid = (ordered.length - 1) / 2;
     const shifts = new Map();
     ordered.forEach((p, i) => {
-      const delta = (i - mid) * step;
-      shifts.set(p, delta);
-      p.object.position[axis] += delta;
+      const shiftVec = new THREE.Vector3();
+      const m = p.meta || {};
+      if (m.usar_explode || m.explode_vector) {
+        const v = m.explode_vector || [0, 0, 0];
+        const distCm = m.explode_dist_cm != null ? m.explode_dist_cm : 0;
+        // Convertir coordenadas de Blender (Z-up) a Three.js (Y-up): (x, z, -y)
+        const distM = distCm / 100;
+        const dir = new THREE.Vector3(v[0] || 0, v[2] || 0, -(v[1] || 0));
+        if (dir.lengthSq() > 0) dir.normalize();
+        shiftVec.copy(dir).multiplyScalar(distM);
+      } else {
+        const delta = (i - mid) * step;
+        shiftVec[axis] = delta;
+      }
+      shifts.set(p, shiftVec);
+      p.object.position.add(shiftVec);
     });
     root.updateMatrixWorld(true);
 
@@ -597,7 +610,7 @@ function renderViews(THREE, root, pieces, opts) {
     });
 
     /* Restaurar posiciones para no dejar el modelo desarmado. */
-    ordered.forEach(p => { p.object.position[axis] -= shifts.get(p); });
+    ordered.forEach(p => { p.object.position.sub(shifts.get(p)); });
     root.updateMatrixWorld(true);
 
     scene.remove(root);

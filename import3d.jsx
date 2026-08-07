@@ -168,10 +168,13 @@ function readGlbMeta(root) {
       const nombre = rawObjectName(obj);
       const meta = nombre && jsonSeguro(ud.mn_meta);
       if (meta) {
+        if (ud.usar_explode !== undefined) meta.usar_explode = ud.usar_explode;
+        if (ud.explode_vector !== undefined) meta.explode_vector = ud.explode_vector;
+        if (ud.explode_dist_cm !== undefined) meta.explode_dist_cm = ud.explode_dist_cm;
         if (objetos[nombre]) avisos.push(`Hay más de un objeto llamado "${nombre}"; se usó el último.`);
         objetos[nombre] = meta;
       }
-    } else if (ud.pieza_nombre || ud.pieza_id || ud.material || ud.proceso || ud.capa) {
+    } else if (ud.pieza_nombre || ud.pieza_id || ud.material || ud.proceso || ud.capa || ud.usar_explode) {
       const nombre = rawObjectName(obj);
       if (nombre) {
         const meta = {
@@ -185,6 +188,9 @@ function readGlbMeta(root) {
           incluir: ud.incluir !== false,
           orden_ensamble: ud.orden_ensamble || 0,
           nota_taller: ud.nota_taller || '',
+          usar_explode: ud.usar_explode,
+          explode_vector: ud.explode_vector,
+          explode_dist_cm: ud.explode_dist_cm,
         };
         if (objetos[nombre]) avisos.push(`Hay más de un objeto llamado "${nombre}"; se usó el último.`);
         objetos[nombre] = meta;
@@ -577,14 +583,22 @@ function renderViews(THREE, root, pieces, opts) {
     ordered.forEach((p, i) => {
       const shiftVec = new THREE.Vector3();
       const m = p.meta || {};
-      if (m.usar_explode || m.explode_vector) {
-        const v = m.explode_vector || [0, 0, 0];
-        const distCm = m.explode_dist_cm != null ? m.explode_dist_cm : 0;
-        // Convertir coordenadas de Blender (Z-up) a Three.js (Y-up): (x, z, -y)
-        const distM = distCm / 100;
-        const dir = new THREE.Vector3(v[0] || 0, v[2] || 0, -(v[1] || 0));
-        if (dir.lengthSq() > 0) dir.normalize();
-        shiftVec.copy(dir).multiplyScalar(distM);
+      const ud = (p.object && p.object.userData) || {};
+      const usarExplode = m.usar_explode !== undefined ? m.usar_explode : (ud.usar_explode !== undefined ? ud.usar_explode : (m.explode_vector != null || ud.explode_vector != null));
+      const v = m.explode_vector || ud.explode_vector || [0, 0, 0];
+      const distCm = m.explode_dist_cm !== undefined ? m.explode_dist_cm : (ud.explode_dist_cm !== undefined ? ud.explode_dist_cm : null);
+
+      if (usarExplode || distCm !== null) {
+        const dCm = distCm != null ? distCm : 0;
+        if (dCm === 0) {
+          // Estática (0 cm): no se desplaza en absoluto
+          shiftVec.set(0, 0, 0);
+        } else {
+          const distM = dCm / 100;
+          const dir = new THREE.Vector3(v[0] || 0, v[2] || 0, -(v[1] || 0));
+          if (dir.lengthSq() > 0) dir.normalize();
+          shiftVec.copy(dir).multiplyScalar(distM);
+        }
       } else {
         const delta = (i - mid) * step;
         shiftVec[axis] = delta;

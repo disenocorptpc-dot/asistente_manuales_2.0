@@ -91,11 +91,12 @@
         if (!pending) {
           pending = (async () => {
             const THREE = await import('three');
-            const [{ GLTFLoader }, { OBJLoader }] = await Promise.all([
+            const [{ GLTFLoader }, { OBJLoader }, { DRACOLoader }] = await Promise.all([
               import('three/addons/loaders/GLTFLoader.js'),
               import('three/addons/loaders/OBJLoader.js'),
+              import('three/addons/loaders/DRACOLoader.js'),
             ]);
-            return { THREE, GLTFLoader, OBJLoader };
+            return { THREE, GLTFLoader, OBJLoader, DRACOLoader };
           })();
           pending.catch((e) => {
             console.error('[import3d] Three.js no cargó:', e);

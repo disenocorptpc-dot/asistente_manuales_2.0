@@ -160,10 +160,32 @@ function readGlbMeta(root) {
     if (!obj.isMesh) return;
     const ud = obj.userData || {};
     if (ud.mn_proyecto && !proyecto) proyecto = jsonSeguro(ud.mn_proyecto);
+    if (ud.proyecto && !proyecto) {
+      proyecto = typeof ud.proyecto === 'string' ? { nombre: ud.proyecto } : ud.proyecto;
+    }
+
     if (ud.mn_meta) {
       const nombre = rawObjectName(obj);
       const meta = nombre && jsonSeguro(ud.mn_meta);
       if (meta) {
+        if (objetos[nombre]) avisos.push(`Hay más de un objeto llamado "${nombre}"; se usó el último.`);
+        objetos[nombre] = meta;
+      }
+    } else if (ud.pieza_nombre || ud.pieza_id || ud.material || ud.proceso || ud.capa) {
+      const nombre = rawObjectName(obj);
+      if (nombre) {
+        const meta = {
+          nombre: ud.pieza_nombre || nombre,
+          pieza_id: ud.pieza_id || '',
+          capa: ud.capa || '',
+          material: ud.material || '',
+          proceso: ud.proceso || '',
+          acabado: ud.acabado || '',
+          cantidad: typeof ud.cantidad === 'number' ? ud.cantidad : 1,
+          incluir: ud.incluir !== false,
+          orden_ensamble: ud.orden_ensamble || 0,
+          nota_taller: ud.nota_taller || '',
+        };
         if (objetos[nombre]) avisos.push(`Hay más de un objeto llamado "${nombre}"; se usó el último.`);
         objetos[nombre] = meta;
       }
@@ -174,6 +196,9 @@ function readGlbMeta(root) {
       if (!mat) return;
       const mud = mat.userData || {};
       if (mud.mn_proyecto && !proyecto) proyecto = jsonSeguro(mud.mn_proyecto);
+      if (mud.proyecto && !proyecto) {
+        proyecto = typeof mud.proyecto === 'string' ? { nombre: mud.proyecto } : mud.proyecto;
+      }
       if (mud.mn_meta && mat.name) {
         const meta = jsonSeguro(mud.mn_meta);
         if (meta) {
@@ -801,7 +826,7 @@ function buildSlidePatches(result) {
 
 async function parseFile(file, onProgress) {
   if (onProgress) onProgress('Cargando motor 3D…');
-  const { THREE, GLTFLoader, OBJLoader } = await loadThree();
+  const { THREE, GLTFLoader, OBJLoader, DRACOLoader } = await loadThree();
   if (onProgress) onProgress('Leyendo geometría…');
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   let root, detectedUnit = null, meta = null;
@@ -810,7 +835,13 @@ async function parseFile(file, onProgress) {
     const buf = await file.arrayBuffer();
     detectedUnit = 'm';   // glTF fija 1 unidad = 1 metro siempre, por spec
     const gltf = await new Promise((resolve, reject) => {
-      new GLTFLoader().parse(buf, '', resolve, reject);
+      const loader = new GLTFLoader();
+      if (DRACOLoader) {
+        const draco = new DRACOLoader();
+        draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+        loader.setDRACOLoader(draco);
+      }
+      loader.parse(buf, '', resolve, reject);
     });
     root = gltf.scene;
     /* GLTFLoader ya deja los `extras` del addon en `userData` al parsear,

@@ -344,74 +344,6 @@ function App() {
     document.head.removeChild(styleEl);
   };
 
-  const exportPdfLegacy = async () => {
-    if (!window.html2canvas || !window.jspdf) {
-      showToast('Cargando librerías PDF…');
-      return;
-    }
-    showToast('Generando PDF (Imagen)…');
-    const { jsPDF } = window.jspdf;
-    const orientation = dims.wMM > dims.hMM ? 'l' : 'p';
-    try {
-      const pdf = new jsPDF({
-        orientation,
-        unit: 'mm',
-        format: [dims.wMM, dims.hMM],
-        compress: true,
-      });
-      // Temporarily show print-container off-screen for capture
-      const printContainer = document.querySelector('.print-container');
-      const prev = { display: printContainer.style.display, position: printContainer.style.position,
-        top: printContainer.style.top, left: printContainer.style.left, zIndex: printContainer.style.zIndex };
-      printContainer.style.display = 'block';
-      printContainer.style.position = 'fixed';
-      printContainer.style.top = '-99999px';
-      printContainer.style.left = '0';
-      printContainer.style.zIndex = '-1';
-      // Small settle delay
-      await new Promise(r => setTimeout(r, 120));
-      const pages = printContainer.querySelectorAll('.print-page');
-      for (let i = 0; i < pages.length; i++) {
-        const pageEl = pages[i].querySelector('.page') || pages[i];
-        if (i > 0) pdf.addPage([dims.wMM, dims.hMM], orientation);
-        const canvas = await window.html2canvas(pageEl, {
-          scale: 3,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          width: dims.w,
-          height: dims.h,
-          windowWidth: dims.w,
-          windowHeight: dims.h,
-          logging: false,
-        });
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, dims.wMM, dims.hMM);
-      }
-      // Restore
-      Object.assign(printContainer.style, prev);
-      // Build filename: Proyecto - Propiedad - DD-MM
-      const slug = (s) => (s || '').trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ');
-      const MESES = { enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12 };
-      const parseDateShort = (raw) => {
-        if (!raw) return '';
-        const m1 = raw.match(/(\d{1,2})\s+de\s+([a-záéíóú]+)/i);
-        if (m1) {
-          const d = m1[1].padStart(2,'0');
-          const mo = String(MESES[m1[2].toLowerCase()] || '').padStart(2,'0');
-          return mo ? `${d}-${mo}` : '';
-        }
-        const m2 = raw.match(/(\d{1,2})[\/\-](\d{1,2})/);
-        if (m2) return `${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
-        return raw.slice(0,5);
-      };
-      const parts = [slug(globals.title), slug(globals.property), parseDateShort(globals.date)].filter(Boolean);
-      pdf.save(`${parts.join(' - ')} (Imagen).pdf`);
-      showToast('PDF descargado ✓');
-    } catch (e) {
-      showToast('Error generando PDF: ' + e.message);
-      console.error(e);
-    }
-  };
 
   return (
     <div className="app">
@@ -487,9 +419,7 @@ function App() {
           <button className="btn btn--primary" onClick={exportPdfVector} title="Guardar como PDF de alta calidad con texto seleccionable">
             <i className="ti ti-file-type-pdf"></i> Guardar PDF (Texto)
           </button>
-          <button className="btn btn--ghost" onClick={exportPdfLegacy} title="Generar PDF de imagen heredado">
-            <i className="ti ti-photo"></i> PDF (Imagen)
-          </button>
+
         </div>
       </header>
 

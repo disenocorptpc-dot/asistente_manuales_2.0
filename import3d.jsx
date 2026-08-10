@@ -580,14 +580,11 @@ function renderViews(THREE, root, pieces, opts) {
     renderer.render(scene, cam);
     out.montaje = cropToContent(canvas).url;
 
-    /* — Explosivo: piezas separadas sobre el eje de espesor — */
+    /* — Explosivo: despiece con contrato u orientación radial idéntica a JARVIS viewer — */
     const ordered = pieces.slice().sort((a, b) => a.center[axis] - b.center[axis]);
+    const cajaTotal = boxOfPieces(THREE, pieces);
+    const centroTotal = cajaTotal.getCenter(new THREE.Vector3());
 
-    /* La separación se mide contra el TAMAÑO DE CARA de la pieza, no contra su
-       dimensión mayor repartida entre los huecos. Antes: 100 cm de ancho × 0.55 / 9
-       huecos = 6 cm de separación entre placas de 100 cm — se veían encimadas porque
-       lo estaban. Ahora `spread` es el hueco como fracción de la cara, así que no se
-       encoge al crecer el número de piezas. */
     const faceSize = Math.max(...['x', 'y', 'z'].filter(k => k !== axis).map(k => size[k]));
     const gap = opts.spread != null ? opts.spread : 0.16;
     let step = faceSize * gap;
@@ -600,24 +597,39 @@ function renderViews(THREE, root, pieces, opts) {
       const m = p.meta || {};
       const ud = (p.object && p.object.userData) || {};
       const usarExplode = m.usar_explode !== undefined ? m.usar_explode : (ud.usar_explode !== undefined ? ud.usar_explode : (m.explode_vector != null || ud.explode_vector != null));
-      const v = m.explode_vector || ud.explode_vector || [0, 0, 0];
+      const v = m.explode_vector || ud.explode_vector || null;
       const distCm = m.explode_dist_cm !== undefined ? m.explode_dist_cm : (ud.explode_dist_cm !== undefined ? ud.explode_dist_cm : null);
 
-      if (usarExplode || distCm !== null) {
-        const dCm = distCm != null ? distCm : 0;
+      if (usarExplode || distCm !== null || (Array.isArray(v) && v.length === 3)) {
+        const dCm = distCm != null ? distCm : 25;
         if (dCm === 0) {
           // Estática (0 cm): no se desplaza en absoluto
           shiftVec.set(0, 0, 0);
         } else {
           const distM = dCm / 100;
-          const dir = new THREE.Vector3(v[0] || 0, v[2] || 0, -(v[1] || 0));
+          const vArr = v || [0, 0, 0];
+          const dir = new THREE.Vector3(vArr[0] || 0, vArr[2] || 0, -(vArr[1] || 0));
           if (dir.lengthSq() > 0) dir.normalize();
           shiftVec.copy(dir).multiplyScalar(distM);
         }
       } else {
-        const delta = (i - mid) * step;
-        shiftVec[axis] = delta;
+        const _pBox = new THREE.Box3().setFromObject(p.object);
+        const dir = _pBox.getCenter(new THREE.Vector3()).sub(centroTotal);
+        if (dir.lengthSq() < 1e-10) dir.set(0, 1, 0);
+        dir.normalize();
+
+        const distM = (step * (Math.abs(i - mid) + 1)) * 0.8;
+        shiftVec.copy(dir).multiplyScalar(distM);
       }
+
+      /* Transformar la dirección del vector al espacio LOCAL del padre del objeto
+         para que la rotación o parenting en Blender no distorsione el despiece */
+      if (p.object && p.object.parent) {
+        p.object.parent.updateWorldMatrix(true, false);
+        const invParentRot = new THREE.Matrix3().setFromMatrix4(p.object.parent.matrixWorld).invert();
+        shiftVec.applyMatrix3(invParentRot);
+      }
+
       shifts.set(p, shiftVec);
       p.object.position.add(shiftVec);
     });

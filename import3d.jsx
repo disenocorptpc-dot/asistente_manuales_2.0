@@ -156,6 +156,12 @@ function readGlbMeta(root) {
   const avisos = [];
   let proyecto = null;
 
+  const rootUd = (root && root.userData) || {};
+  if (rootUd.mn_proyecto && !proyecto) proyecto = jsonSeguro(rootUd.mn_proyecto);
+  if (rootUd.proyecto && !proyecto) {
+    proyecto = typeof rootUd.proyecto === 'string' ? { nombre: rootUd.proyecto } : rootUd.proyecto;
+  }
+
   root.traverse((obj) => {
     if (!obj.isMesh) return;
     const ud = obj.userData || {};
@@ -215,7 +221,8 @@ function readGlbMeta(root) {
     });
   });
 
-  return { materiales, objetos, proyecto, avisos };
+  const tieneMetadatos = rootUd.palace_schema === 1 || Object.keys(objetos).length > 0;
+  return { materiales, objetos, proyecto, avisos, tieneMetadatos, palaceSchema: rootUd.palace_schema };
 }
 
 function metaDeObjeto(meta, obj) {
@@ -235,6 +242,14 @@ function extractPieces(THREE, root, meta) {
   root.traverse((obj) => {
     if (!obj.isMesh || !obj.geometry) return;
     const objMeta = metaDeObjeto(meta, obj);
+
+    /* Si la escena contiene metadatos/contrato pero este objeto en particular
+       no tiene ficha/metadato asignado en el GLB, se trata de una malla auxiliar o
+       no catalogada: se oculta y se descarta de la lista de piezas. */
+    if (meta && meta.tieneMetadatos && !objMeta) {
+      obj.visible = false;
+      return;
+    }
 
     /* Marcado como helper en Blender: fuera de la lista Y fuera de los renders.
        Basta con apagarlo, porque las vistas se renderizan desde `root`, no

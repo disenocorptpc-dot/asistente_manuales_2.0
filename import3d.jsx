@@ -243,14 +243,6 @@ function extractPieces(THREE, root, meta) {
     if (!obj.isMesh || !obj.geometry) return;
     const objMeta = metaDeObjeto(meta, obj);
 
-    /* Si la escena contiene metadatos/contrato pero este objeto en particular
-       no tiene ficha/metadato asignado en el GLB, se trata de una malla auxiliar o
-       no catalogada: se oculta y se descarta de la lista de piezas. */
-    if (meta && meta.tieneMetadatos && !objMeta) {
-      obj.visible = false;
-      return;
-    }
-
     /* Marcado como helper en Blender: fuera de la lista Y fuera de los renders.
        Basta con apagarlo, porque las vistas se renderizan desde `root`, no
        desde `pieces`. Es justo lo que salva al render de la curva sobrante del
@@ -272,7 +264,7 @@ function extractPieces(THREE, root, meta) {
       ? obj.geometry.index.count / 3
       : (obj.geometry.attributes.position ? obj.geometry.attributes.position.count / 3 : 0);
 
-    /* Espesor y calibre: lo declarado en el addon manda; si no, se lee del
+    /* Espesor y calibre: lo declared en el addon manda; si no, se lee del
        nombre como siempre. */
     const specs = readSpecs(cleanToken(obj.name) + ' ' + cleanToken((mat && mat.name) || ''));
     if (matMeta && matMeta.espesor_mm) specs.espesorMm = matMeta.espesor_mm;
@@ -370,40 +362,50 @@ function addStudioLights(THREE, scene) {
   scene.add(fill);
 }
 
-/* ───────── Silueta del alzado frontal ─────────
-   Para una vista plana de frente lo que se necesita es la silueta, no las aristas
-   duras: la silueta no arrastra el ruido de la triangulación y no tiene problema de
-   líneas ocultas, porque de frente no hay nada que ocultar.
+/* ───────── Silueta del alzado frontal ───────── */
 
-   Cómo se obtiene: se toman los triángulos cuya normal mira a la cámara y de ellos
-   las aristas que aparecen UNA sola vez. En una malla cerrada cada arista pertenece a
-   dos triángulos; si dentro del subconjunto frontal aparece una vez, está en el borde.
-   Eso entrega el contorno exterior y, como bucles aparte, los barrenos y calados.
-
-   Los segmentos salen en unidades del archivo, así que esta misma lista es la que
-   alimentará el SVG acotado de la Fase 2. */
-
-/* Ejes del plano de proyección para una vista frontal sobre `axis`. */
 function planeAxes(axis) {
   if (axis === 'z') return { h: 'x', v: 'y' };
   if (axis === 'y') return { h: 'x', v: 'z' };
   return { h: 'z', v: 'y' };
 }
 
-function silhouetteSegments(THREE, pieces, axis, faceThresholdDeg = 35) {
+function silhouetteSegments(THREE, pieces, axis, faceThresholdDeg = 18) {
   const { h, v } = planeAxes(axis);
-  const view = new THREE.Vector3(); view[axis] = 1;
   const cosLimit = Math.cos((faceThresholdDeg * Math.PI) / 180);
-  const Q = 1000; // cuantización a 1/1000 de unidad, para emparejar aristas compartidas
+  const Q = 1000;
   const q = n => Math.round(n * Q);
-
-  /* Agrupado POR PIEZA, no en una lista plana. Tres placas de la caja de luz tienen
-     contornos casi idénticos y al aplanarlos se pisan entre sí. Además el SVG de la
-     Fase 2 necesita una capa por pieza, para que el taller corte por material. */
-  const groups = [];
 
   const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
   const ab = new THREE.Vector3(), ac = new THREE.Vector3(), nrm = new THREE.Vector3();
+
+  /* 1. Detectar si la cara frontal apunta hacia +axis o -axis */
+  let sumAxisNrm = 0;
+  pieces.forEach(piece => {
+    const geo = piece.object.geometry;
+    const pos = geo.attributes && geo.attributes.position;
+    if (!pos) return;
+    const idx = geo.index;
+    const count = idx ? idx.count : pos.count;
+    const m = piece.object.matrixWorld;
+    for (let i = 0; i < count; i += 3) {
+      const i0 = idx ? idx.getX(i) : i;
+      const i1 = idx ? idx.getX(i + 1) : i + 1;
+      const i2 = idx ? idx.getX(i + 2) : i + 2;
+      a.fromBufferAttribute(pos, i0).applyMatrix4(m);
+      b.fromBufferAttribute(pos, i1).applyMatrix4(m);
+      c.fromBufferAttribute(pos, i2).applyMatrix4(m);
+      ab.subVectors(b, a); ac.subVectors(c, a);
+      nrm.crossVectors(ab, ac);
+      const len = nrm.length();
+      if (len > 1e-9) sumAxisNrm += nrm[axis] / len;
+    }
+  });
+
+  const viewDirSign = sumAxisNrm < 0 ? -1 : 1;
+  const view = new THREE.Vector3(); view[axis] = viewDirSign;
+
+  const groups = [];
 
   pieces.forEach(piece => {
     const geo = piece.object.geometry;
@@ -424,11 +426,9 @@ function silhouetteSegments(THREE, pieces, axis, faceThresholdDeg = 35) {
       ab.subVectors(b, a); ac.subVectors(c, a);
       nrm.crossVectors(ab, ac);
       const len = nrm.length();
-      if (len < 1e-9) continue;           // triángulo degenerado
+      if (len < 1e-9) continue;
       nrm.divideScalar(len);
-      /* Sólo UN lado de la placa. Si se aceptan cara frontal y trasera a la vez, sus
-         contornos proyectan idénticos y cada arista del borde queda contada dos veces,
-         así que el filtro de "aparece una sola vez" las descarta todas. */
+
       if (nrm.dot(view) < cosLimit) continue;
 
       const tri = [a, b, c];

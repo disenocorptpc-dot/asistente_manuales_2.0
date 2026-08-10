@@ -48,3 +48,25 @@ database_id = "4ebd1f32-0b58-4f9e-b1c7-f824d034e88f"
 ### 3. Protocolo de Verificación tras Cambios
 1. Probar componentes UI y funciones localmente (`npx wrangler pages dev .`).
 2. Tras realizar `git push origin main --tags`, verificar el endpoint `/api/projects` para asegurar que devuelva los manuales reales de la base de datos D1 de produccion.
+
+---
+
+## 🧠 Registro de Hallazgos y Decisiones de Arquitectura (v2.4.0 — 2026-08-10)
+
+### 1. Sincronización del Contrato de Datos GLB (`palace_schema` + `pieza_id`)
+- `import3d.jsx` lee metadatos tanto del esquema legacy (`mn_meta` JSON) como de `palace_schema` v2 (custom properties individuales `userData.pieza_id`, `userData.capa`, `userData.material`, etc.).
+- Si un GLB cuenta con contrato/metadatos, `import3d.jsx` solo cataloga piezas legítimas y mantiene visibles todas las mallas reales del ensamble sin descartarlas ni generar piezas basura (mallas auxiliares o cubos/planos de estudio).
+
+### 2. Agrupamiento de Submallas por Objeto Principal (`findPieceOwner`)
+- Para evitar que mallas compuestas o letras (ej. `Curve0011` a `Curve0018` de un letrero) se separen en pedacitos sueltos durante la vista de despiece, `extractPieces` agrupa todas las submallas bajo el objeto o nodo contenedor principal (`owner`).
+- Las piezas se desplazan como un solo cuerpo sólido rígido, logrando un despiece explosivo 100% idéntico al del Visor JARVIS.
+
+### 3. Matriz de Transformación en Despiece (`invParentRot`)
+- Al calcular los desplazamientos 3D de las piezas en `import3d.jsx`, el vector de movimiento se transforma al espacio local del objeto padre (`p.object.parent.matrixWorld.invert()`).
+- Esto evita que objetos rotados o emparentados en Blender sufran desplazamientos dispares en direcciones equivocadas.
+
+### 4. Silueta y Proyección de Alzado Frontal (`silhouetteSegments`)
+- Se implementó la detección automática de la orientación de las normales (`viewDirSign` +1 / -1) para procesar correctamente piezas orientadas hacia `+Z` o `-Z` en Blender.
+- Se ajustó el umbral de angulación de caras a `18°`, previniendo que los biseles a 30°/45° de las aristas borren el contorno exterior de las letras o figuras.
+- Las funciones de recorrido iteran defensivamente las submallas reales (`piece.meshObjects`), previniendo errores de lectura de `.geometry.attributes`.
+

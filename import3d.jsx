@@ -417,24 +417,28 @@ function silhouetteSegments(THREE, pieces, axis, faceThresholdDeg = 18) {
   /* 1. Detectar si la cara frontal apunta hacia +axis o -axis */
   let sumAxisNrm = 0;
   pieces.forEach(piece => {
-    const geo = piece.object.geometry;
-    const pos = geo.attributes && geo.attributes.position;
-    if (!pos) return;
-    const idx = geo.index;
-    const count = idx ? idx.count : pos.count;
-    const m = piece.object.matrixWorld;
-    for (let i = 0; i < count; i += 3) {
-      const i0 = idx ? idx.getX(i) : i;
-      const i1 = idx ? idx.getX(i + 1) : i + 1;
-      const i2 = idx ? idx.getX(i + 2) : i + 2;
-      a.fromBufferAttribute(pos, i0).applyMatrix4(m);
-      b.fromBufferAttribute(pos, i1).applyMatrix4(m);
-      c.fromBufferAttribute(pos, i2).applyMatrix4(m);
-      ab.subVectors(b, a); ac.subVectors(c, a);
-      nrm.crossVectors(ab, ac);
-      const len = nrm.length();
-      if (len > 1e-9) sumAxisNrm += nrm[axis] / len;
-    }
+    const meshes = piece.meshObjects || (piece.object && piece.object.isMesh ? [piece.object] : []);
+    meshes.forEach(meshObj => {
+      const geo = meshObj && meshObj.geometry;
+      if (!geo) return;
+      const pos = geo.attributes && geo.attributes.position;
+      if (!pos) return;
+      const idx = geo.index;
+      const count = idx ? idx.count : pos.count;
+      const m = meshObj.matrixWorld;
+      for (let i = 0; i < count; i += 3) {
+        const i0 = idx ? idx.getX(i) : i;
+        const i1 = idx ? idx.getX(i + 1) : i + 1;
+        const i2 = idx ? idx.getX(i + 2) : i + 2;
+        a.fromBufferAttribute(pos, i0).applyMatrix4(m);
+        b.fromBufferAttribute(pos, i1).applyMatrix4(m);
+        c.fromBufferAttribute(pos, i2).applyMatrix4(m);
+        ab.subVectors(b, a); ac.subVectors(c, a);
+        nrm.crossVectors(ab, ac);
+        const len = nrm.length();
+        if (len > 1e-9) sumAxisNrm += nrm[axis] / len;
+      }
+    });
   });
 
   const viewDirSign = sumAxisNrm < 0 ? -1 : 1;
@@ -443,43 +447,47 @@ function silhouetteSegments(THREE, pieces, axis, faceThresholdDeg = 18) {
   const groups = [];
 
   pieces.forEach(piece => {
-    const geo = piece.object.geometry;
-    const pos = geo.attributes && geo.attributes.position;
-    if (!pos) return;
-    const idx = geo.index;
-    const count = idx ? idx.count : pos.count;
-    const m = piece.object.matrixWorld;
-    const edges = new Map();
-
-    for (let i = 0; i < count; i += 3) {
-      const i0 = idx ? idx.getX(i) : i;
-      const i1 = idx ? idx.getX(i + 1) : i + 1;
-      const i2 = idx ? idx.getX(i + 2) : i + 2;
-      a.fromBufferAttribute(pos, i0).applyMatrix4(m);
-      b.fromBufferAttribute(pos, i1).applyMatrix4(m);
-      c.fromBufferAttribute(pos, i2).applyMatrix4(m);
-      ab.subVectors(b, a); ac.subVectors(c, a);
-      nrm.crossVectors(ab, ac);
-      const len = nrm.length();
-      if (len < 1e-9) continue;
-      nrm.divideScalar(len);
-
-      if (nrm.dot(view) < cosLimit) continue;
-
-      const tri = [a, b, c];
-      for (let e = 0; e < 3; e++) {
-        const p1 = tri[e], p2 = tri[(e + 1) % 3];
-        const k1 = q(p1[h]) + ':' + q(p1[v]);
-        const k2 = q(p2[h]) + ':' + q(p2[v]);
-        if (k1 === k2) continue;
-        const key = k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1;
-        const hit = edges.get(key);
-        if (hit) hit.n++;
-        else edges.set(key, { n: 1, x1: p1[h], y1: p1[v], x2: p2[h], y2: p2[v] });
-      }
-    }
+    const meshes = piece.meshObjects || (piece.object && piece.object.isMesh ? [piece.object] : []);
     const own = [];
-    edges.forEach(ed => { if (ed.n === 1) own.push(ed); });
+    meshes.forEach(meshObj => {
+      const geo = meshObj && meshObj.geometry;
+      if (!geo) return;
+      const pos = geo.attributes && geo.attributes.position;
+      if (!pos) return;
+      const idx = geo.index;
+      const count = idx ? idx.count : pos.count;
+      const m = meshObj.matrixWorld;
+      const edges = new Map();
+
+      for (let i = 0; i < count; i += 3) {
+        const i0 = idx ? idx.getX(i) : i;
+        const i1 = idx ? idx.getX(i + 1) : i + 1;
+        const i2 = idx ? idx.getX(i + 2) : i + 2;
+        a.fromBufferAttribute(pos, i0).applyMatrix4(m);
+        b.fromBufferAttribute(pos, i1).applyMatrix4(m);
+        c.fromBufferAttribute(pos, i2).applyMatrix4(m);
+        ab.subVectors(b, a); ac.subVectors(c, a);
+        nrm.crossVectors(ab, ac);
+        const len = nrm.length();
+        if (len < 1e-9) continue;
+        nrm.divideScalar(len);
+
+        if (nrm.dot(view) < cosLimit) continue;
+
+        const tri = [a, b, c];
+        for (let e = 0; e < 3; e++) {
+          const p1 = tri[e], p2 = tri[(e + 1) % 3];
+          const k1 = q(p1[h]) + ':' + q(p1[v]);
+          const k2 = q(p2[h]) + ':' + q(p2[v]);
+          if (k1 === k2) continue;
+          const key = k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1;
+          const hit = edges.get(key);
+          if (hit) hit.n++;
+          else edges.set(key, { n: 1, x1: p1[h], y1: p1[v], x2: p2[h], y2: p2[v] });
+        }
+      }
+      edges.forEach(ed => { if (ed.n === 1) own.push(ed); });
+    });
     if (own.length) groups.push({ piece, segments: own });
   });
 

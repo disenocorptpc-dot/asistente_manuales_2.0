@@ -235,45 +235,76 @@ function metaDeMaterial(meta, mat) {
   return meta.materiales[mat.name] || null;
 }
 
+function findPieceOwner(obj, root, meta) {
+  let curr = obj;
+  let candidate = obj;
+  while (curr && curr !== root) {
+    const ud = curr.userData || {};
+    const objName = rawObjectName(curr);
+    const hasMeta = (meta && meta.objetos && meta.objetos[objName]);
+    if (ud.pieza_id || ud.mn_meta || hasMeta || ud.pieza_nombre) {
+      candidate = curr;
+      break;
+    }
+    if (curr.parent && curr.parent !== root) {
+      curr = curr.parent;
+    } else {
+      break;
+    }
+  }
+  return candidate;
+}
+
 function extractPieces(THREE, root, meta) {
   const pieces = [];
   const excluidas = [];
+  const piecesByOwner = new Map();
+
   root.updateMatrixWorld(true);
   root.traverse((obj) => {
     if (!obj.isMesh || !obj.geometry) return;
-    const objMeta = metaDeObjeto(meta, obj);
+    const owner = findPieceOwner(obj, root, meta);
+    const objMeta = metaDeObjeto(meta, owner) || metaDeObjeto(meta, obj);
 
-    /* Marcado como helper en Blender: fuera de la lista Y fuera de los renders.
-       Basta con apagarlo, porque las vistas se renderizan desde `root`, no
-       desde `pieces`. Es justo lo que salva al render de la curva sobrante del
-       import de SVG. */
+    /* Marcado como helper en Blender: fuera de la lista Y fuera de los renders. */
     if (objMeta && objMeta.incluir === false) {
       obj.visible = false;
-      excluidas.push(prettyName(rawObjectName(obj)) || rawObjectName(obj));
+      const n = prettyName(rawObjectName(owner)) || prettyName(rawObjectName(obj));
+      if (!excluidas.includes(n)) excluidas.push(n);
       return;
     }
     obj.visible = true;
 
     const box = new THREE.Box3().setFromObject(obj);
     if (box.isEmpty()) return;
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
+
     const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
     const matMeta = metaDeMaterial(meta, mat);
     const tris = obj.geometry.index
       ? obj.geometry.index.count / 3
       : (obj.geometry.attributes.position ? obj.geometry.attributes.position.count / 3 : 0);
 
-    /* Espesor y calibre: lo declared en el addon manda; si no, se lee del
-       nombre como siempre. */
-    const specs = readSpecs(cleanToken(obj.name) + ' ' + cleanToken((mat && mat.name) || ''));
+    const ownerKey = owner.id || owner.uuid || rawObjectName(owner);
+
+    if (piecesByOwner.has(ownerKey)) {
+      const existing = piecesByOwner.get(ownerKey);
+      existing.triangles += Math.round(tris);
+      existing.meshObjects.push(obj);
+      return;
+    }
+
+    const ownerBox = new THREE.Box3().setFromObject(owner);
+    const size = ownerBox.getSize(new THREE.Vector3());
+    const center = ownerBox.getCenter(new THREE.Vector3());
+
+    const specs = readSpecs(cleanToken(owner.name || obj.name) + ' ' + cleanToken((mat && mat.name) || ''));
     if (matMeta && matMeta.espesor_mm) specs.espesorMm = matMeta.espesor_mm;
     if (matMeta && matMeta.calibre) specs.calibre = matMeta.calibre;
 
-    pieces.push({
-      rawName: obj.name || '',
+    const entry = {
+      rawName: owner.name || obj.name || '',
       rawMaterial: (mat && mat.name) || '',
-      name: (objMeta && objMeta.nombre) || prettyName(obj.name),
+      name: (objMeta && objMeta.nombre) || prettyName(owner.name || obj.name),
       material: (matMeta && matMeta.nombre) || prettyName((mat && mat.name) || 'Sin material'),
       cantidad: (objMeta && objMeta.cantidad) || 1,
       meta: objMeta || null,
@@ -284,8 +315,12 @@ function extractPieces(THREE, root, meta) {
       volume: size.x * size.y * size.z,
       triangles: Math.round(tris),
       health: checkManifold(THREE, obj),
-      object: obj,
-    });
+      object: owner,
+      meshObjects: [obj],
+    };
+
+    piecesByOwner.set(ownerKey, entry);
+    pieces.push(entry);
   });
   return { pieces, excluidas };
 }

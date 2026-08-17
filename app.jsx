@@ -45,7 +45,6 @@ function App() {
   const [activeId, setActiveId] = useStateA(SEED_SLIDES[0].id);
   const [globals, setGlobals] = useStateA({
     title: 'Manual de Producción — Almare',
-    suffix: 'BP',
     property: 'Moon Palace Cancún',
     dept: 'Departamento de Diseño Gráfico',
     corp: 'Corporativo THG',

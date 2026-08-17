@@ -22,7 +22,6 @@ function PageChrome({ globals, slideIndex, total, slideLabel }) {
         <div>{slideLabel || ''}</div>
         <div>
           {globals.title || 'Manual de producción'}
-          {globals.suffix ? ' · ' + globals.suffix : ''}
           {' — '}
           {globals.property || 'Propiedad'}
         </div>

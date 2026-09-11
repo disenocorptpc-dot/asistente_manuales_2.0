@@ -60,6 +60,7 @@ function App() {
   const [showProjects, setShowProjects] = useStateA(false);
   const [projectList, setProjectList] = useStateA([]);
   const [searchQuery, setSearchQuery] = useStateA('');
+  const [projectModalView, setProjectModalView] = useStateA('recientes');
   const [saveMenuOpen, setSaveMenuOpen] = useStateA(false);
   const [isDirty, setIsDirty] = useStateA(false);
   const [lastSavedAt, setLastSavedAt] = useStateA(null);
@@ -90,7 +91,7 @@ function App() {
 
   // Auto-fit zoom to canvas area
   const canvasRef = useRefA(null);
-  const dims = PAGE_SIZES[tweaks.pageSize] || PAGE_SIZES.A4_landscape;
+  const dims = PAGE_SIZES[tweaks.pageSize] || PAGE_SIZES.Letter_landscape;
   useEffectA(() => {
     if (!autoFit) return;
     const fit = () => {
@@ -132,6 +133,14 @@ function App() {
   const updateGlobalsField = (field, value) => {
     setIsDirty(true);
     setGlobals(prev => ({ ...prev, [field]: value }));
+    if (field === 'title') {
+      setSlides(curr => curr.map(s => {
+        if (s.template === 'cover') {
+          return { ...s, data: { ...s.data, itemTitle: value } };
+        }
+        return s;
+      }));
+    }
   };
 
   /* Importador 3D: aplica un parche por plantilla, sobre la primera slide de cada tipo. */
@@ -449,9 +458,32 @@ function App() {
             <i className="ti ti-plus"></i>
           </button>
           <div className="divider"/>
-          <span style={{ fontSize: 11, color: 'var(--fg-weak)', padding: '0 8px' }}>
-            {dims.label}
-          </span>
+          <div className="tweaks-segmented" style={{ display: 'inline-flex', padding: 2, background: 'var(--bg-alternative, #f1f5f9)', borderRadius: 6 }}>
+            <button
+              className={tweaks.pageSize === 'Letter_landscape' ? 'is-active' : ''}
+              onClick={() => setTweak({ pageSize: 'Letter_landscape' })}
+              style={{
+                border: 0, padding: '3px 8px', fontSize: 11, fontWeight: 500, borderRadius: 4, cursor: 'pointer',
+                background: tweaks.pageSize === 'Letter_landscape' ? 'white' : 'transparent',
+                color: tweaks.pageSize === 'Letter_landscape' ? 'var(--color-ocean-blue-900)' : 'var(--fg-weak)',
+                boxShadow: tweaks.pageSize === 'Letter_landscape' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+              }}
+            >
+              Carta
+            </button>
+            <button
+              className={tweaks.pageSize === '16x9' ? 'is-active' : ''}
+              onClick={() => setTweak({ pageSize: '16x9' })}
+              style={{
+                border: 0, padding: '3px 8px', fontSize: 11, fontWeight: 500, borderRadius: 4, cursor: 'pointer',
+                background: tweaks.pageSize === '16x9' ? 'white' : 'transparent',
+                color: tweaks.pageSize === '16x9' ? 'var(--color-ocean-blue-900)' : 'var(--fg-weak)',
+                boxShadow: tweaks.pageSize === '16x9' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+              }}
+            >
+              16:9
+            </button>
+          </div>
         </div>
         <div className="canvas-area__inner">
           <div style={{
@@ -504,7 +536,7 @@ function App() {
                   className={tweaks.pageSize === key ? 'is-active' : ''}
                   onClick={() => setTweak({ pageSize: key })}
                 >
-                  {key === 'A4_landscape' ? 'A4' : key === 'Letter_landscape' ? 'Carta' : '16:9'}
+                  {key === 'Letter_landscape' ? 'Carta' : '16:9'}
                 </button>
               ))}
             </div>
@@ -546,6 +578,57 @@ function App() {
           }
         };
 
+        const renderProjectCard = (p) => {
+          const isActive = projectId === p.id;
+          return (
+            <div
+              key={p.id}
+              className={`project-card ${isActive ? 'project-card--active' : ''}`}
+              onClick={() => loadProject(p.id)}
+            >
+              <div className="project-card__info">
+                <div className="project-card__header">
+                  <span className="project-card__title">{p.name || 'Sin título'}</span>
+                  {p.property && <span className="project-card__badge">{p.property}</span>}
+                  {isActive && <span className="project-card__active-indicator">● Abierto</span>}
+                </div>
+                <div className="project-card__date">
+                  <i className="ti ti-clock" style={{ fontSize: 13 }}></i>
+                  {formatDateFriendly(p.updated_at)}
+                </div>
+              </div>
+
+              <div className="project-card__actions" onClick={e => e.stopPropagation()}>
+                <button
+                  className="action-btn action-btn--duplicate"
+                  title="Duplicar este manual como una nueva copia"
+                  onClick={() => duplicateProject(p.id, p.name)}
+                >
+                  <i className="ti ti-copy"></i>
+                </button>
+                <button
+                  className="action-btn action-btn--link"
+                  title="Copiar enlace para compartir"
+                  onClick={() => {
+                    const url = window.location.origin + window.location.pathname + '?project_id=' + p.id;
+                    navigator.clipboard.writeText(url);
+                    showToast('Enlace copiado al portapapeles ✓');
+                  }}
+                >
+                  <i className="ti ti-link"></i>
+                </button>
+                <button
+                  className="action-btn action-btn--danger"
+                  title="Eliminar manual"
+                  onClick={() => deleteProject(p.id, p.name)}
+                >
+                  <i className="ti ti-trash"></i>
+                </button>
+              </div>
+            </div>
+          );
+        };
+
         return (
           <div className="modal-overlay" onClick={() => setShowProjects(false)}>
             <div className="modal-card" onClick={e => e.stopPropagation()}>
@@ -564,7 +647,7 @@ function App() {
                 </button>
               </div>
 
-              {/* Search Bar */}
+              {/* Search Bar & View Mode Toggle */}
               <div className="modal-search-area">
                 <div className="modal-search-box">
                   <i className="ti ti-search search-icon"></i>
@@ -581,6 +664,28 @@ function App() {
                     </button>
                   )}
                 </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                  <button
+                    onClick={() => setProjectModalView('recientes')}
+                    style={{
+                      padding: '4px 10px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 0, cursor: 'pointer',
+                      background: projectModalView === 'recientes' ? 'var(--color-ocean-blue-900, #0f172a)' : '#f1f5f9',
+                      color: projectModalView === 'recientes' ? 'white' : '#64748b',
+                    }}
+                  >
+                    <i className="ti ti-clock" style={{ marginRight: 4 }}></i> Más recientes
+                  </button>
+                  <button
+                    onClick={() => setProjectModalView('propiedad')}
+                    style={{
+                      padding: '4px 10px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 0, cursor: 'pointer',
+                      background: projectModalView === 'propiedad' ? 'var(--color-ocean-blue-900, #0f172a)' : '#f1f5f9',
+                      color: projectModalView === 'propiedad' ? 'white' : '#64748b',
+                    }}
+                  >
+                    <i className="ti ti-building" style={{ marginRight: 4 }}></i> Por propiedad
+                  </button>
+                </div>
               </div>
 
               {/* Modal Body */}
@@ -590,6 +695,10 @@ function App() {
                     <i className="ti ti-folder-off" style={{ fontSize: 36, color: '#cbd5e1', marginBottom: 8, display: 'block' }}></i>
                     {searchQuery ? `No se encontraron manuales que coincidan con "${searchQuery}"` : 'No hay manuales guardados todavía.'}
                   </div>
+                ) : projectModalView === 'recientes' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {filteredList.map(p => renderProjectCard(p))}
+                  </div>
                 ) : (
                   groupEntries.map(([grp, projects]) => (
                     <div className="project-group" key={grp}>
@@ -597,56 +706,7 @@ function App() {
                         <i className="ti ti-building"></i> {grp} ({projects.length})
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {projects.map(p => {
-                          const isActive = projectId === p.id;
-                          return (
-                            <div
-                              key={p.id}
-                              className={`project-card ${isActive ? 'project-card--active' : ''}`}
-                              onClick={() => loadProject(p.id)}
-                            >
-                              <div className="project-card__info">
-                                <div className="project-card__header">
-                                  <span className="project-card__title">{p.name || 'Sin título'}</span>
-                                  {p.property && <span className="project-card__badge">{p.property}</span>}
-                                  {isActive && <span className="project-card__active-indicator">● Abierto</span>}
-                                </div>
-                                <div className="project-card__date">
-                                  <i className="ti ti-clock" style={{ fontSize: 13 }}></i>
-                                  {formatDateFriendly(p.updated_at)}
-                                </div>
-                              </div>
-
-                              <div className="project-card__actions" onClick={e => e.stopPropagation()}>
-                                <button
-                                  className="action-btn action-btn--duplicate"
-                                  title="Duplicar este manual como una nueva copia"
-                                  onClick={() => duplicateProject(p.id, p.name)}
-                                >
-                                  <i className="ti ti-copy"></i>
-                                </button>
-                                <button
-                                  className="action-btn action-btn--link"
-                                  title="Copiar enlace para compartir"
-                                  onClick={() => {
-                                    const url = window.location.origin + window.location.pathname + '?project_id=' + p.id;
-                                    navigator.clipboard.writeText(url);
-                                    showToast('Enlace copiado al portapapeles ✓');
-                                  }}
-                                >
-                                  <i className="ti ti-link"></i>
-                                </button>
-                                <button
-                                  className="action-btn action-btn--danger"
-                                  title="Eliminar manual"
-                                  onClick={() => deleteProject(p.id, p.name)}
-                                >
-                                  <i className="ti ti-trash"></i>
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {projects.map(p => renderProjectCard(p))}
                       </div>
                     </div>
                   ))

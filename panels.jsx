@@ -2,23 +2,23 @@
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "pageSize": "A4_landscape"
+  "pageSize": "Letter_landscape"
 }/*EDITMODE-END*/;
 
 /* ───────── Page chrome (header + footer on every slide) ───────── */
-function PageChrome({ globals, slideIndex, total, slideLabel }) {
+function PageChrome({ globals, slideIndex, total, slideLabel, isMontaje = false }) {
   return (
     <>
-      <div className="page-chrome-header">
+      <div className={'page-chrome-header' + (isMontaje ? ' page-chrome--montaje' : '')}>
         <div className="page-chrome-header__right" style={{ position: 'absolute', top: 52, right: 32 }}>
           {globals.logoData ? (
             <img src={globals.logoData} alt="" />
           ) : (
-            <img src="ds/logo-palace-default.svg" alt="Palace" style={{ height: 22, opacity: 0.7 }} />
+            <img src="ds/logo-palace-default.svg" alt="Palace" style={{ height: 22, opacity: isMontaje ? 1 : 0.7 }} />
           )}
         </div>
       </div>
-      <div className="page-chrome-footer">
+      <div className={'page-chrome-footer' + (isMontaje ? ' page-chrome--montaje' : '')}>
         <div>{slideLabel || ''}</div>
         <div>
           {globals.title || 'Manual de producción'}
@@ -38,7 +38,8 @@ function SlideRenderer({ slide, globals, index, total, onUpdate, pageSize, scale
   const Body = TEMPLATE_BODIES[slide.template];
   const tpl = TEMPLATES[slide.template];
   const update = (patch) => onUpdate({ ...slide, data: { ...slide.data, ...patch } });
-  const dims = PAGE_SIZES[pageSize];
+  const dims = PAGE_SIZES[pageSize] || PAGE_SIZES.Letter_landscape;
+  const isMontaje = slide.template === 'montaje';
   const ReadOnlyProvider = window.ReadOnlyContext ? window.ReadOnlyContext.Provider : React.Fragment;
 
   return (
@@ -52,15 +53,16 @@ function SlideRenderer({ slide, globals, index, total, onUpdate, pageSize, scale
           transformOrigin: 'top left',
         }}
       >
+        <Body data={slide.data} update={update} globals={globals} />
         {slide.template !== 'cover' && (
           <PageChrome
             globals={globals}
             slideIndex={index}
             total={total}
-            slideLabel={tpl.name.toUpperCase()}
+            slideLabel={isMontaje ? '' : (tpl ? tpl.name.toUpperCase() : '')}
+            isMontaje={isMontaje}
           />
         )}
-        <Body data={slide.data} update={update} globals={globals} />
       </div>
     </ReadOnlyProvider>
   );
@@ -68,7 +70,7 @@ function SlideRenderer({ slide, globals, index, total, onUpdate, pageSize, scale
 
 /* ───────── Slide thumbnail (mini preview) ───────── */
 function SlideThumb({ slide, globals, index, total, pageSize }) {
-  const dims = PAGE_SIZES[pageSize];
+  const dims = PAGE_SIZES[pageSize] || PAGE_SIZES.Letter_landscape;
   const ref = useRef(null);
   const [scale, setScale] = useState(0.18);
   useEffect(() => {
@@ -237,7 +239,7 @@ function SlidesPanel({ slides, globals, activeId, setActiveId, setSlides, pageSi
                 key={tpl.id}
                 className="add-slide-popover__item"
                 onClick={() => {
-                  const s = newSlide(tpl.id);
+                  const s = newSlide(tpl.id, globals ? globals.title : '', globals ? globals.property : '');
                   setSlides([...slides, s]);
                   setActiveId(s.id);
                   setShowAdd(false);

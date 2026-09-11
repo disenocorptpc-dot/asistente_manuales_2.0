@@ -458,6 +458,19 @@ input, textarea { font-family: inherit; color: inherit; }
 }
 .page-chrome-footer .pn { font-variant-numeric: tabular-nums; }
 
+/* Invert / Difference blend mode on full-bleed Montaje */
+.page-chrome--montaje {
+  mix-blend-mode: difference !important;
+  color: #ffffff !important;
+  z-index: 25 !important;
+}
+.page-chrome--montaje * {
+  color: #ffffff !important;
+}
+.page-chrome--montaje img {
+  filter: brightness(0) invert(1) !important;
+}
+
 /* Slide body */
 .slide-body {
   position: absolute;

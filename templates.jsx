@@ -12,10 +12,10 @@ const TEMPLATES = {
     name: 'Portada',
     desc: 'Cubierta corporativa con líneas',
     icon: 'rectangle-vertical',
-    defaults: () => ({
+    defaults: (projectName = '', property = '') => ({
       projectType: 'PROPUESTA DE DISEÑO',
-      itemTitle: 'LOGO ENTRADA',
-      siteName: 'BAGLIONI MALDIVAS',
+      itemTitle: projectName || 'NOMBRE DEL PROYECTO',
+      siteName: property || 'UBICACIÓN',
     }),
   },
   montaje: {
@@ -23,7 +23,7 @@ const TEMPLATES = {
     name: 'Montaje',
     desc: 'Render hero a página completa',
     icon: 'frame',
-    defaults: () => ({
+    defaults: (projectName = '') => ({
       label: 'Montaje',
       assetMontaje: null,
     }),
@@ -33,11 +33,10 @@ const TEMPLATES = {
     name: 'Descriptivo',
     desc: 'Vista frontal · cotas · render aislado',
     icon: 'layout-2',
-    defaults: () => ({
-      itemTitle: 'BAÑO DE HUÉSPEDES',
+    defaults: (projectName = '') => ({
+      itemTitle: projectName || 'DESCRIPCIÓN GENERAL',
       sectionLabel: 'PROPUESTA DE DISEÑO',
-      descripcion:
-        'Madera sólida color avellana clara de 12 mm de espesor. El frente presenta un desbaste de 3 mm para la incrustación de íconos en acrílico de 12 mm con acabado en pintura automotriz, color a definir según ubicación.',
+      descripcion: '',
       cotaAncho: '30 cm',
       cotaAlto: '15 cm',
       assetVector: null,
@@ -49,14 +48,14 @@ const TEMPLATES = {
     name: 'Explosivo',
     desc: 'Despiece con anotaciones',
     icon: 'package',
-    defaults: () => ({
-      itemTitle: 'BAÑO DE HUÉSPEDES',
+    defaults: (projectName = '') => ({
+      itemTitle: projectName || 'DESPIECE EXPLOSIVO',
       sectionLabel: 'EXPLOSIVO',
       assetExplosivo: null,
       annotations: [
-        { id: 1, num: '01', label: 'Pieza superior — madera sólida', x: 35, y: 22 },
-        { id: 2, num: '02', label: 'Cuerpo central — acrílico 12 mm', x: 50, y: 50 },
-        { id: 3, num: '03', label: 'Base estructural — herraje oculto', x: 60, y: 78 },
+        { id: 1, num: '01', label: 'Pieza superior', x: 35, y: 22 },
+        { id: 2, num: '02', label: 'Cuerpo central', x: 50, y: 50 },
+        { id: 3, num: '03', label: 'Base estructural', x: 60, y: 78 },
       ],
       observaciones: '',
     }),
@@ -66,8 +65,8 @@ const TEMPLATES = {
     name: 'Planos técnicos',
     desc: 'Vistas con cotas',
     icon: 'rulers',
-    defaults: () => ({
-      itemTitle: 'BAÑO DE HUÉSPEDES',
+    defaults: (projectName = '') => ({
+      itemTitle: projectName || 'PLANOS TÉCNICOS',
       sectionLabel: 'PLANOS TÉCNICOS',
       assetPlano: null,
       cotas: [
@@ -83,26 +82,26 @@ const TEMPLATES = {
     name: 'Materiales y acabados',
     desc: 'Especificaciones técnicas',
     icon: 'palette',
-    defaults: () => ({
-      itemTitle: 'BAÑO DE HUÉSPEDES',
+    defaults: (projectName = '') => ({
+      itemTitle: projectName || 'MATERIALES Y ACABADOS',
       sectionLabel: 'MATERIALES Y ACABADOS',
       materiales: [
         {
           id: 1,
-          material: 'Madera sólida — avellana clara',
-          descripcion: 'Cuerpo principal con barniz mate y detalles en color sólido.',
+          material: 'Material principal',
+          descripcion: 'Descripción y acabado del material.',
           asset: null,
         },
         {
           id: 2,
-          material: 'Acrílico inyectado 12 mm',
-          descripcion: 'Íconos frontales con acabado en pintura automotriz.',
+          material: 'Material secundario',
+          descripcion: 'Detalle de composición y acabado.',
           asset: null,
         },
         {
           id: 3,
-          material: 'Espárragos en aluminio',
-          descripcion: 'Sistema de anclaje con acabado anodizado natural.',
+          material: 'Herrajes / Anclaje',
+          descripcion: 'Sistema de fijación o ensamble.',
           asset: null,
         },
       ],
@@ -114,10 +113,10 @@ const TEMPLATE_LIST = Object.values(TEMPLATES);
 
 /* ───────── Helpers ───────── */
 const uid = () => Math.random().toString(36).slice(2, 9);
-const newSlide = (templateId) => ({
+const newSlide = (templateId, projectName = '', property = '') => ({
   id: uid(),
   template: templateId,
-  data: TEMPLATES[templateId].defaults(),
+  data: TEMPLATES[templateId].defaults(projectName, property),
 });
 
 /* Initial seed */
@@ -132,7 +131,6 @@ const SEED_SLIDES = [
 
 /* Page sizes. wMM/hMM are the canonical print dimensions; w/h are 96dpi pixel equivalents for screen. */
 const PAGE_SIZES = {
-  A4_landscape:     { w: 1123, h: 794, wMM: 297,    hMM: 210,    label: 'A4 (horizontal)' },
   Letter_landscape: { w: 1056, h: 816, wMM: 279.4,  hMM: 215.9,  label: 'Carta (horizontal)' },
   '16x9':           { w: 1280, h: 720, wMM: 338.67, hMM: 190.5,  label: '16:9' },
 };

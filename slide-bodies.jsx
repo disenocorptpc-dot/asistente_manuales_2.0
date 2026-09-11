@@ -346,23 +346,42 @@ function CoverBody({ data, update, globals }) {
 
 function MontajeBody({ data, update, globals }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, paddingTop: 56, paddingBottom: 40 }}>
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: '#0a0a0a' }}>
+      <Slot
+        value={data.assetMontaje}
+        onChange={(v) => update({ assetMontaje: v })}
+        label="Render de montaje a página completa"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          borderRadius: 0,
+          border: 'none',
+        }}
+        contain={false}
+        aiMeta={globals && globals.aiMeta}
+      />
       <div style={{
-        position: 'absolute', top: 56, left: 32, right: 32, bottom: 40,
-        display: 'flex', flexDirection: 'column', gap: 16,
+        position: 'absolute',
+        top: 24,
+        left: 32,
+        zIndex: 20,
+        mixBlendMode: 'difference',
+        color: '#ffffff',
       }}>
         <InlineText
           value={data.label}
           onChange={(v) => update({ label: v })}
           className="slide-overline"
-        />
-        <Slot
-          value={data.assetMontaje}
-          onChange={(v) => update({ assetMontaje: v })}
-          label="Render de montaje a página completa"
-          style={{ flex: 1 }}
-          contain={true}
-          aiMeta={globals && globals.aiMeta}
+          style={{
+            color: '#ffffff',
+            fontSize: '9.5px',
+            letterSpacing: '1.2px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            mixBlendMode: 'difference',
+          }}
         />
       </div>
     </div>

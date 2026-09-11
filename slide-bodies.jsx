@@ -345,6 +345,8 @@ function CoverBody({ data, update, globals }) {
 }
 
 function MontajeBody({ data, update, globals }) {
+  const showScrim = data.scrim !== false;
+
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: '#0a0a0a' }}>
       <Slot
@@ -362,12 +364,46 @@ function MontajeBody({ data, update, globals }) {
         contain={false}
         aiMeta={globals && globals.aiMeta}
       />
+
+      {/* Scrim Superior: Desvanecimiento sutil para cabecera / etiqueta / logo */}
+      {showScrim && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 112,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.1) 75%, transparent 100%)',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        />
+      )}
+
+      {/* Scrim Inferior: Desvanecimiento sutil para metadatos del pie de página */}
+      {showScrim && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 96,
+            background: 'linear-gradient(0deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.12) 75%, transparent 100%)',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        />
+      )}
+
       <div style={{
         position: 'absolute',
         top: 24,
         left: 32,
         zIndex: 20,
-        mixBlendMode: 'difference',
         color: '#ffffff',
       }}>
         <InlineText
@@ -380,7 +416,6 @@ function MontajeBody({ data, update, globals }) {
             letterSpacing: '1.2px',
             fontWeight: 600,
             textTransform: 'uppercase',
-            mixBlendMode: 'difference',
           }}
         />
       </div>

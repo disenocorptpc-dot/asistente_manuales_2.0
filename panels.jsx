@@ -10,7 +10,15 @@ function PageChrome({ globals, slideIndex, total, slideLabel, isMontaje = false 
   return (
     <>
       <div className={'page-chrome-header' + (isMontaje ? ' page-chrome--montaje' : '')}>
-        <div className="page-chrome-header__right" style={{ position: 'absolute', top: 52, right: 32 }}>
+        <div
+          className="page-chrome-header__right"
+          style={{
+            position: 'absolute',
+            top: isMontaje ? 24 : 52,
+            right: 32,
+            zIndex: isMontaje ? 25 : undefined,
+          }}
+        >
           {globals.logoData ? (
             <img src={globals.logoData} alt="" />
           ) : (
@@ -342,6 +350,17 @@ function SlideInspector({ slide, tpl, update }) {
       {tpl.id === 'montaje' && <>
         <FieldGroup title="Contenido">
           <Field label="Etiqueta" value={d.label} onChange={v => update({ label: v })} />
+        </FieldGroup>
+        <FieldGroup title="Visualización">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', padding: '4px 0' }}>
+            <input
+              type="checkbox"
+              checked={d.scrim !== false}
+              onChange={e => update({ scrim: e.target.checked })}
+              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--color-ocean-blue-700)' }}
+            />
+            <span style={{ userSelect: 'none' }}>Degradado cinematográfico (Scrim)</span>
+          </label>
         </FieldGroup>
         <FieldGroup title="Imagen">
           <AssetField value={d.assetMontaje} onChange={v => update({ assetMontaje: v })} label="Render de montaje" />

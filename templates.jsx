@@ -26,6 +26,7 @@ const TEMPLATES = {
     defaults: (projectName = '') => ({
       label: 'Montaje',
       assetMontaje: null,
+      scrim: true,
     }),
   },
   descriptivo: {
